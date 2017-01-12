@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Xiao Car</title>
+  <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <style>
+  	html {width: 100%;height: 100%;}
+	body {min-width: 100%;min-height: 100%;}
+	.center {
+		position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  margin: auto;
+  width: 300px;
+  height: 200px;
+
+	}
+
+	.center .table  {
+		width: 100%;
+	}
+
+	table tr td {
+		padding-bottom:20px; text-align: center;
+	}
+
+	.move {
+		height: 125px;
+		width: 125px;
+	}
+  </style>
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script>
+  var leftnum = 0;
+  var rightnum = 0;
+
+  function forward() {
+  		leftnum += 30;
+  		rightnum += 30;
+  		$(".rightnum").text(rightnum);
+  		$(".leftnum").text(leftnum);
+
+      $.get("/drive/"+leftnum+"/"+rightnum, function (data){return;});
+  	}
+
+  	function backward() {
+  		leftnum -= 30;
+  		rightnum -= 30;
+  		$(".rightnum").text(rightnum);
+  		$(".leftnum").text(leftnum);
+
+      $.get("/drive/"+leftnum+"/"+rightnum, function (data){return;});
+  	}
+
+  	function left() {
+      var t_left = leftnum;
+      var t_right = rightnum;
+
+      leftnum *= 1.5;
+      rightnum /= 1.5;
+
+      leftnum = Math.floor(leftnum);
+      rightnum = Math.floor(rightnum);
+
+  		$(".rightnum").text(rightnum);
+
+      $.get("/drive/"+leftnum+"/"+rightnum, function (data){return;});
+
+      setTimeout(function(){
+        leftnum = t_left;
+        rightnum = t_right;
+
+        $.get("/drive/"+leftnum+"/"+rightnum, function (data){return;});        
+      }, 1000);
+
+        $(".leftnum").text(leftnum);
+        $(".rightnum").text(leftnum);
+        
+  	}
+
+  	function right() {
+
+      var t_left = leftnum;
+      var t_right = rightnum;
+
+      leftnum /= 1.5;
+      rightnum *= 1.5;
+
+      leftnum = Math.floor(leftnum);
+      rightnum = Math.floor(rightnum);
+
+      $(".leftnum").text(leftnum);
+      $(".rightnum").text(leftnum);
+
+      $.get("/drive/"+leftnum+"/"+rightnum, function (data){return;});
+
+      setTimeout(function(){
+        leftnum = t_left;
+        rightnum = t_right;
+
+        $.get("/drive/"+leftnum+"/"+rightnum, function (data){return;});        
+      }, 1000);
+
+        $(".leftnum").text(leftnum);
+        $(".rightnum").text(leftnum);
+        
+  	}
+
+    function stop() {
+      rightnum = 0;
+      leftnum = 0;
+      $(".rightnum").text(rightnum);
+      $(".leftnum").text(leftnum);
+      $.get("/stop", function (data){return;});
+    }
+
+  $( function() {
+
+    $(".record").click(function(event){
+      $.get("/record", function (data){return;});
+    });
+  	
+    $( ".move" ).button();
+
+    $( ".move" ).click( function( event ) {
+
+      var name = $(this).attr('class').split(/\s+/)[1];
+      var fn = window[name];
+      fn();
+      
+    } );
+  } );
+  </script>
+</head>
+<body>
+<div class="center">
+  <h1 style="text-align:center">Xiao Car Controller</h1>
+  <h4 style="text-align:center"><a href="/stoprecord">Stop Record</a></h4>
+  <h4 style="text-align:center"><a class="record" href="javascript:void(0);">Record</a></h4>
+  <h4 style="text-align:center"><a href="/save">Save</a></h4>
+  <br/><br/>
+  <h4 style="text-align:center">Left Motor <span class="leftnum">0</span>  -- Right Motor <span class="rightnum">0</span></h4>
+  <div><span id="leftnum"></span><span id="rightnum"></span></div>
+  <table class="table">
+     <tr>
+        <td>
+           <button class='move forward'>Drive <br/>Forward</button>
+        </td>
+        <td>
+           <button class='move backward'>Drive <br/>Backward</button>
+        </td>
+     </tr>
+     <tr>
+        <td>
+           <button class='move left'>Turn <br/>Left</button>
+        </td>
+        <td>
+           <button class='move right'>Turn <br/>Right</button>
+        </td>
+     </tr>
+     <tr>
+        <td colspan="2">
+           <button class='move stop'>Stop</button>
+        </td>
+        
+     </tr>
+
+ 
+  
+</body>
+</html>

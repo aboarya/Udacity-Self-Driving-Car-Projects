@@ -1,0 +1,1 @@
+sudo pip3 install https://github.com/samjabrahams/tensorflow-on-raspberry-pi/releases/download/v0.11.0/tensorflow-0.11.0-py3-none-any.whl
