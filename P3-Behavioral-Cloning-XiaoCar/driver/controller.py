@@ -179,7 +179,7 @@ Warning, this new I²C address will still be used after resetting the power on t
 
 
 # Class used to control PicoBorg Reverse
-class PicoBorgRev:
+class PicoBorgRev(object):
     """
 This module is designed to communicate with the PicoBorg Reverse
 
