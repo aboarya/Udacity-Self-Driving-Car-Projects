@@ -1,4 +1,4 @@
-from driver.piborg import Driver
+from driver import Driver
 
 def main():
     driver = Driver()

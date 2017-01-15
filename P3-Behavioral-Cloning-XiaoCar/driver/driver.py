@@ -23,7 +23,7 @@ import pygame
 
 from . import controller
 from model import save_data
-from model import predict
+# from model import predict
 
 sys.stdout = sys.stderr
 
@@ -101,7 +101,7 @@ class ImageCapture(threading.Thread):
         global running
         while running:
             if processor.event.is_set():
-                time.sleep(0.25)
+                time.sleep(0.01)
             else:
                 yield processor.stream
                 processor.event.set()
@@ -217,7 +217,7 @@ class Driver(object):
         running = False
         processor.terminated = True
         self.PBR.MotorsOff()
-        save_data(DATA, file_path='robot-day-short.p')
+        save_data(DATA, file_path='robot-metal-track-day.p')
         sys.exit(0)
 
     def drive_joystick(self):
