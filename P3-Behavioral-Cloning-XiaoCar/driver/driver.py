@@ -20,7 +20,7 @@ import cv2
 import picamera
 import picamera.array
 import pygame
-
+import subprocess
 from . import controller
 from model import save_data
 # from model import predict
@@ -101,7 +101,25 @@ class ImageCapture(threading.Thread):
         global running
         while running:
             if processor.event.is_set():
-                time.sleep(0.01)
+                if not 'driveLeft' in CONTROL:
+                    left = 0
+                    right = 0
+                else:
+                    left = CONTROL['driveLeft']
+                    right = CONTROL['driveRight']
+                fswebcam = 'fswebcam --no-banner --flip v --flip h --no-shadow '
+                _time = str(time.time()).replace('.','')
+                filname = '{}-{}-{}.jpg'.format(_time,
+                    left, 
+                    right)
+                cmd = '{} /home/pi/xiaocar/fscam/{}'.format(fswebcam, filname)
+                # cmd = cmd.split(' ')
+                #cmd = [i for i in cmd if len(i) > 0]
+                os.system(cmd)
+
+                # subprocess.call(cmd, shell=True)
+                # p = subprocess.Popen(cmd)
+                # time.sleep(0.01)
             else:
                 yield processor.stream
                 processor.event.set()
