@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 _index_in_epoch = 0
 num_classes = 43
 BATCH_SIZE = 64
-EPOCHS = 200
+EPOCHS = 100
 
 def shuffle(x, y):
     perm = np.arange(len(x))
@@ -289,8 +289,9 @@ def training(loss, learning_rate):
 def accuracy(logits, labels):
     with tf.name_scope('accuracy'):
         with tf.name_scope('correct_prediction'):
-            correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
+            y_pred_cls = tf.argmax(labels, 1)
+            correct_prediction = tf.equal(tf.argmax(logits, 1), y_pred_cls)
         with tf.name_scope('accuracy'):
              accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     tf.summary.scalar('accuracy', accuracy)
-    return accuracy
+    return accuracy, y_pred_cls
