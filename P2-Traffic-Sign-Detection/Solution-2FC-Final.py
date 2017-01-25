@@ -58,6 +58,29 @@ X_test, y_test = test['features'], test['labels']
 
 # In[3]:
 
+
+### Replace each question mark with the appropriate value.
+
+# TODO: Number of training examples
+n_train = len(X)
+
+# TODO: Number of testing examples.
+n_test = len(X)
+
+# TODO: What's the shape of an traffic sign image?
+image_shape = X[0].shape
+
+# TODO: How many unique classes/labels there are in the dataset.
+n_classes = len(set(list(Y)))
+
+print("Number of training examples =", n_train)
+print("Number of testing examples =", n_test)
+print("Image data shape =", image_shape)
+print("Number of classes =", n_classes)
+
+
+# In[4]:
+
 names = {}
 with open('signnames.csv') as _f:
     rows = csv.reader(_f, delimiter=',')
@@ -85,25 +108,25 @@ with open('signnames.csv') as _f:
 # 
 # **NOTE:** It's recommended you start with something simple first. If you wish to do more, come back to it after you've completed the rest of the sections.
 
-# In[4]:
+# In[5]:
 
 X_train, Y_train, X_val, Y_val = train_test_split(X, Y)
 
 
-# In[5]:
+# In[6]:
 
 data = group_classes(list(Y))
 plot_frequency(list(names.values()), np.array(list(set(Y))), list(data.values()))
 
 
-# In[6]:
+# In[7]:
 
 data = group_classes_sorted(sorted(Y_train))
 images, labels, counts = get_images_and_counts(X, list(Y), data)
 plot_signs(images, labels, counts)
 
 
-# In[7]:
+# In[8]:
 
 counts = {}
 
@@ -120,7 +143,7 @@ for k,v in sorted_x:
     counts[k] = (10000-v)
 
 
-# In[8]:
+# In[9]:
 
 X_train = list(X_train)
 
@@ -148,7 +171,7 @@ for i in range(len(X_train)):
 X_train, Y_train = np.array(X_train), np.array(Y_train)
 
 
-# In[9]:
+# In[10]:
 
 counts = {}
 
@@ -183,7 +206,7 @@ print(counts)
 # 
 # Use the code cell (or multiple code cells, if necessary) to implement the first step of your project. Once you have completed your implementation and are satisfied with the results, be sure to thoroughly answer the questions that follow.
 
-# In[10]:
+# In[11]:
 
 Y_train = dense_to_one_hot(Y_train, num_classes)
 
@@ -192,7 +215,7 @@ Y_val = dense_to_one_hot(Y_val, num_classes)
 Y_test =  dense_to_one_hot(y_test, num_classes)
 
 
-# In[11]:
+# In[12]:
 
 # Image Tensor
 images_placeholder = tf.placeholder(tf.float32, shape=[None, 32, 32, 3], name='x')
@@ -227,14 +250,14 @@ saver = tf.train.Saver()
 merged = tf.merge_all_summaries()
 
 
-# In[12]:
+# In[13]:
 
 steps = len(X_train) // BATCH_SIZE
     
 train_num_examples = steps * BATCH_SIZE
 
 
-# In[13]:
+# In[14]:
 
 def evaluate(X_data, y_data):
     Predictions = list()
@@ -258,7 +281,7 @@ def evaluate(X_data, y_data):
     return (summary, total_accuracy / num_examples, total_loss / num_examples, Predictions)
 
 
-# In[14]:
+# In[15]:
 
 with tf.Session() as sess:
     
@@ -286,7 +309,7 @@ with tf.Session() as sess:
     print("Model saved in file: %s" % save_path)
 
 
-# In[15]:
+# In[16]:
 
 test_batch_size = 32 
 
@@ -358,7 +381,7 @@ def print_test_accuracy(session, predictions, X_data, Y_data):
     plot_example_errors(predictions, correct, X_data, Y_data)
 
 
-# In[16]:
+# In[17]:
 
 with tf.Session() as sess:
     saver.restore(sess, '/home/ubuntu/gtsd-final.chkpt')
@@ -378,19 +401,19 @@ with tf.Session() as sess:
 # 
 # For preprocessing I explored several options.  
 # 
-# 1) Using RGB
+# **1) Using RGB**
 # 
 # Using RGB only yielded a 70% or so validation accuracy
 # 
-# 2) Using YUV
+# **2) Using YUV**
 # 
 # Many of the images are very dark.  I converted the images to YUV and brightened the Y channel but using this same model I was only able to get 88% validation accuracy
 # 
-# 3) Just Grayscaling
+# **3) Just Grayscaling**
 # 
 # With the above model and just grayscaling I saw the highest validation accuracy of 93%
 # 
-# All images were of course normalized to reduce computational by dividing each pixel by the value `255`.
+# All images were of course normalized to reduce computational complexity by dividing each pixel by the value `255`.
 
 # ### Question 2
 # 
@@ -408,6 +431,9 @@ with tf.Session() as sess:
 # _What does your final architecture look like? (Type of model, layers, sizes, connectivity, etc.)  For reference on how to build a deep neural network using TensorFlow, see [Deep Neural Network in TensorFlow
 # ](https://classroom.udacity.com/nanodegrees/nd013/parts/fbf77062-5703-404e-b60c-95b78b2f3f9e/modules/6df7ae49-c61c-4bb2-a23e-6527e69209ec/lessons/b516a270-8600-4f93-a0a3-20dfeabe5da6/concepts/83a3a2a2-a9bd-4b7b-95b0-eb924ab14432) from the classroom._
 # 
+# ### Diagrams:
+# 
+# Please find the diagrams below that represent the model and cross entropy. They were part of the notebook in the last submission but I failed to upload the images to the github repository
 
 # ![title](Model.jpg)
 
@@ -421,7 +447,9 @@ with tf.Session() as sess:
 # 
 # 2) 2x2 max pooling 
 # 
-# 3) 2 FC layers each 0.5 dropped
+# 3) 2 FC layers
+# 
+# 4) Dropout at each FC layer
 # 
 # 
 # 
@@ -440,7 +468,7 @@ with tf.Session() as sess:
 # 
 # Epochs: Max of 100
 # 
-# Batch Size: 32
+# Batch Size: 64
 # 
 
 # ### Question 5
@@ -482,7 +510,7 @@ with tf.Session() as sess:
 # 
 # Use the code cell (or multiple code cells, if necessary) to implement the first step of your project. Once you have completed your implementation and are satisfied with the results, be sure to thoroughly answer the questions that follow.
 
-# In[17]:
+# In[18]:
 
 ### Load the images and plot them here.
 ### Feel free to use as many code cells as needed.
@@ -493,7 +521,7 @@ images = [cv2.imread('./downloaded-images/'+img, 1) for img in names]
 classes = [int(img.replace('.jpg', '')) for img in names]
 
 
-# In[18]:
+# In[19]:
 
 fig, axes = plt.subplots(3, 2, figsize=(3, 3))
 fig.subplots_adjust(hspace=0.4, wspace=0.4)
@@ -503,7 +531,7 @@ for i, ax in enumerate(axes.flat):
     ax.set_yticks([])
 
 
-# In[19]:
+# In[20]:
 
 X_downloaded = images
 y_downloaded = list()
@@ -515,7 +543,7 @@ for _cls in classes:
 y_downloaded = np.array(y_downloaded)
 
 
-# In[20]:
+# In[21]:
 
 def evaluate_downloaded(X_data, y_data):
     Predictions = list()
@@ -555,9 +583,15 @@ def evaluate_downloaded(X_data, y_data):
 # _**NOTE:** You could check the accuracy manually by using `signnames.csv` (same directory). This file has a mapping from the class id (0-42) to the corresponding sign name. So, you could take the class id the model outputs, lookup the name in `signnames.csv` and see if it matches the sign from the image._
 # 
 
-# **Answer:**
+# ### Answer:
+# 
+# Using Google Street Map view of the city of Hamburg, Germany, I was able to screen capture 6 images that match 6 classes from the dataset.
+# 
+# I then cropped the screen shot to only the traffic sign and resized the image to **32X32**.
+# 
+# I ran my model aginst these **6** images and where the test data showed ca. **96%** accuracy, the model's accuracy on these downloaded images was **100%**
 
-# In[23]:
+# In[22]:
 
 
 with tf.Session() as sess:
@@ -611,14 +645,38 @@ with tf.Session() as sess:
 # > **Note**: Once you have completed all of the code implementations and successfully answered each question above, you may finalize your work by exporting the iPython Notebook as an HTML document. You can do this by using the menu above and navigating to  \n",
 #     "**File -> Download as -> HTML (.html)**. Include the finished document along with this notebook as your submission.
 
-# In[38]:
+# In[80]:
 
 with tf.Session() as sess:
     saver.restore(sess, '/home/ubuntu/gtsd-final.chkpt')
     print("Model restored.")
-    values, indices = sess.run(tf.nn.top_k(y_pred, k=3), feed_dict={images_placeholder: X_test[0:2],
-                labels_placeholder: Y_test[0:2],keep_prob:0.5})
+    values, indices = sess.run(tf.nn.top_k(y_pred, k=40), feed_dict={images_placeholder: X_test[1000:1005],
+                labels_placeholder: Y_test[1000:1005],keep_prob:1.0})
     print(values[0], indices[0])
+
+
+# In[81]:
+
+with tf.Session() as sess:
+    saver.restore(sess, '/home/ubuntu/gtsd-final.chkpt')
+    print("Model restored.")
+    values = sess.run(y_pred, feed_dict={images_placeholder: X_test[1000:1005],
+                labels_placeholder: Y_test[1000:1005],keep_prob:1.0})
+    print(values[0])
+
+
+# In[82]:
+
+t = np.arange(0, len(values[0]))
+fig, ax = plt.subplots(1, 3, figsize=(15, 5))
+fig.subplots_adjust(hspace=1, wspace=1)
+for i, ax in enumerate(ax.flat):
+
+    ax.plot(t, values[i], linewidth=1.5, color='blue', alpha=1.0, label='name')
+
+
+# Tweak spacing to prevent clipping of ylabel
+plt.tight_layout()
 
 
 # 
