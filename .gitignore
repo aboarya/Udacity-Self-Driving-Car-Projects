@@ -92,3 +92,4 @@ ENV/
 
 *.p
 .DS_Store
+data/

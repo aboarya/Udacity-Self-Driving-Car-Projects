@@ -25,11 +25,7 @@ batch_size = 32
 
 img_height, img_width = 64, 64
 
-global threashold
-global pixels
-
-threashold = 0.05
-pixels = 15
+augment = 1.
 
 class LifecycleCallback(Callback):
 
@@ -37,16 +33,8 @@ class LifecycleCallback(Callback):
         pass
 
     def on_epoch_end(self, epoch, logs={}):
-        global threshold
-        global pixels
-
-        pixels = pixels + epoch
-        if pixels > 25:
-            pixels = 15
-
-        threshold = .05 + (epoch * .05) 
-        if threshold > 0.8:
-            threshold = 0.2
+        global augment
+        augment -= np.random.uniform(0,.15)*epoch
 
 def shuffle(x, y):
     perm = np.arange(len(x))
@@ -77,10 +65,10 @@ def load_training_and_validation():
             labels.append(float(row[3]))
             # left camera
             rows.append(row[1].strip())
-            labels.append(float(row[3])+.25)
+            labels.append(float(row[3])+.20)
             # right camera 
             rows.append(row[2].strip())
-            labels.append(float(row[3])-0.25)
+            labels.append(float(row[3])-0.20)
 
     assert len(rows) == len(labels), 'unbalanced data'
 
@@ -93,10 +81,10 @@ def load_training_and_validation():
 def resize_image(img):
    return cv2.resize(img,( 64, 64))  
 
-def affine_transform(img, angle, sub=False):
-    global threashold
-    global pixels
+def affine_transform(img, angle):
 
+    right = True if np.random.uniform(-1, 1) > 0 else False
+    pixels = int(np.random.uniform(5, 25))
 
     cols, rows, ch = img.shape
 
@@ -108,20 +96,17 @@ def affine_transform(img, angle, sub=False):
 
     pts1 = np.float32(pts)
 
-    adjust = pixels * threashold * 0.05
-
-    if sub:
-        pts_a = [x - pixels for x in pts_a]
-        pts_b[0] = pts_b[0] -  pixels
-        pts_c[1] = pts_c[1] +  (pixels*5)
-
-        angle -= adjust
+    if right:
+        pts_a = [pts_a[0]+pixels, 75]
+        pts_b = [pts_b[0]+pixels, 75]
+        pts_c = [pts_c[0]+pixels, 250]
+        angle -= (.005 * pixels)
         
     else:
-        pts_a[0] = pts_a[0] - pixels
-        pts_b[0] = pts_b[0] + pixels
-
-        angle += adjust
+        pts_a = [pts_a[0]-pixels, 75]
+        pts_b = [pts_b[0]-pixels, 75]
+        pts_c = [pts_c[0]-pixels, 250]
+        angle += (.005 * pixels)
 
     pts2 = np.float32([pts_a, pts_b, pts_c])
 
@@ -152,45 +137,45 @@ def next_batch(data, labels, batch_size):
 
 
 def transform_generator(x, y, batch_size=32, is_validation=False):
-
+    global augment
     while True:
-        bad = []
         images, labels = list(), list()
 
         _images, _labels = next_batch(x, y, batch_size)
 
         current = os.path.dirname(os.path.realpath(__file__))
 
-        zero_count = 0
-
         for i in range(len(_images)):
             img = cv2.imread('{}/data/{}'.format(current, _images[i]), 1)
 
+            angle = _labels[i]
+
             if img is None: continue
 
-            resized = resize_image(img)
-            angle = _labels[i]
-            images.append(resized)
-            labels.append(angle)
+            if angle != 0 or is_validation:
+                resized = resize_image(img)
+                
+                images.append(resized)
+                
+                labels.append(angle)
 
-            # resized = img.reshape(img_height, img_width, 3)
-
-            if angle == 0:
-                pass # later
-            elif angle > 0:
-                sub = False
-            else:
-                sub = True
-
-            if abs(angle) > 0 and abs(angle) != 0.25:
-
-                if is_validation: continue
+            if is_validation: continue
             
-                image, angle = affine_transform(img, angle, sub=sub)
+            if augment > 0 and abs(angle) > .15:
+                image, angle = affine_transform(img, angle)
                 
                 resized = resize_image(image)
+            
                 images.append(resized)
+                
                 labels.append(angle)
+
+            if abs(angle) > 0.4:
+                image = cv2.flip(img, 1)
+
+                resized = resize_image(image)
+
+                labels.append(angle * -1.)
 
         X = np.array(images, dtype=np.float64).reshape((-1, img_height, img_width, 3))
 
