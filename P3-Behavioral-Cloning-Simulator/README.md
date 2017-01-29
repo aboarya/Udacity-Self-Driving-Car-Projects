@@ -25,7 +25,7 @@ There are 3 __Fully Connected__ layers; having __1024__, __128__, and __64__ neu
 
 A __dropout__ is added to every layer in the network with a __0.5__ keep probablity.  Regularization via a __dropout__ at the convolusional layers help to prevent interdepencency between convolusions, and improve the validity regression at the fully connected layers.
 
-## Augmentation and Recovery
+## Augmenation and Recovery
 
 Left and right cameras are used to peform recovery.  The angle of the center camera is adjusted with a __+/- 0.15__ to reposition the car back into center.
 
