@@ -16,7 +16,7 @@
 
 > __Resizing__
 > 
-> Images are resized in the Generator.  And attempt was made to add a **lambda** resize layer but were unsuccessfull. 
+> Images are resized in the Generator.  Attempts were made to add a **lambda** resize layer but were unsuccessfull. 
 
 The first two layers of the network perform __normalization__ and __trimming__.    Images passed to the input layer via the __Generator__ are resized in to __(64, 64)__.
 
