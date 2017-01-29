@@ -12,20 +12,23 @@ from keras.models import Sequential
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint
 from keras.layers import Convolution2D, MaxPooling2D, ZeroPadding2D
-from keras.layers import Activation, Dropout, Flatten, Dense
+from keras.layers import Activation, Dropout, Flatten, Dense, ELU
 from keras.layers.core import Lambda
 from keras.callbacks import Callback
 from keras.utils import np_utils
 
 _index_in_epoch = 0
 
-nb_epoch = 20
+nb_epoch = 50
 
-batch_size = 32
+batch_size = 64
 
 img_height, img_width = 64, 64
 
 augment = 1.
+
+global bad
+bad = 0
 
 class LifecycleCallback(Callback):
 
@@ -65,10 +68,10 @@ def load_training_and_validation():
             labels.append(float(row[3]))
             # left camera
             rows.append(row[1].strip())
-            labels.append(float(row[3])+.20)
+            labels.append(float(row[3])+.15)
             # right camera 
             rows.append(row[2].strip())
-            labels.append(float(row[3])-0.20)
+            labels.append(float(row[3])-0.15)
 
     assert len(rows) == len(labels), 'unbalanced data'
 
@@ -79,12 +82,12 @@ def load_training_and_validation():
     return train_test_split(X, Y)
 
 def resize_image(img):
-   return cv2.resize(img,( 64, 64))  
+   return cv2.resize(img,(64, 64))  
 
 def affine_transform(img, angle):
 
     right = True if np.random.uniform(-1, 1) > 0 else False
-    pixels = int(np.random.uniform(5, 25))
+    pixels = int(np.random.uniform(10, 50))
 
     cols, rows, ch = img.shape
 
@@ -100,13 +103,13 @@ def affine_transform(img, angle):
         pts_a = [pts_a[0]+pixels, 75]
         pts_b = [pts_b[0]+pixels, 75]
         pts_c = [pts_c[0]+pixels, 250]
-        angle -= (.005 * pixels)
+        angle -= (.004 * pixels)
         
     else:
         pts_a = [pts_a[0]-pixels, 75]
         pts_b = [pts_b[0]-pixels, 75]
         pts_c = [pts_c[0]-pixels, 250]
-        angle += (.005 * pixels)
+        angle += (.004 * pixels)
 
     pts2 = np.float32([pts_a, pts_b, pts_c])
 
@@ -138,6 +141,7 @@ def next_batch(data, labels, batch_size):
 
 def transform_generator(x, y, batch_size=32, is_validation=False):
     global augment
+    global bad
     while True:
         images, labels = list(), list()
 
@@ -150,7 +154,9 @@ def transform_generator(x, y, batch_size=32, is_validation=False):
 
             angle = _labels[i]
 
-            if img is None: continue
+            if img is None:
+                bad += 1
+                continue
 
             if angle != 0 or is_validation:
                 resized = resize_image(img)
@@ -161,7 +167,7 @@ def transform_generator(x, y, batch_size=32, is_validation=False):
 
             if is_validation: continue
             
-            if augment > 0 and abs(angle) > .15:
+            if abs(angle) > .05 and abs(angle) != 0.15:
                 image, angle = affine_transform(img, angle)
                 
                 resized = resize_image(image)
@@ -170,10 +176,12 @@ def transform_generator(x, y, batch_size=32, is_validation=False):
                 
                 labels.append(angle)
 
-            if abs(angle) > 0.4:
+            if abs(angle) > 0.15:
                 image = cv2.flip(img, 1)
 
                 resized = resize_image(image)
+
+                images.append(resized)
 
                 labels.append(angle * -1.)
 
@@ -184,42 +192,39 @@ def transform_generator(x, y, batch_size=32, is_validation=False):
         yield (X, Y)
 
 def gen_model():
+    ch, row, col = 3, 64, 64  # camera format
+
     model = Sequential()
 
-    # normalize
-    model.add(Lambda(lambda x: x / 255., input_shape=(img_height, img_width, 3)))
+    model.add(Lambda(lambda x: x/127.5 - 1.,
+            input_shape=(row, col, ch),
+            output_shape=(row, col, ch)))
 
     # trim the hood of the car
-    model.add(Lambda(lambda x: x[:,:-25,:,:]))
+    model.add(Lambda(lambda x: x[:,30:-8,:,:]))
 
-    # (((64 - 3) + 0) / 1.) + 1
-    model.add(Convolution2D(32, 3, 3, subsample=(1, 1)))
-    model.add(ZeroPadding2D(padding=(1, 1)))
-    model.add(Activation('relu'))
+    model.add(Convolution2D(32, 3, 3, subsample=(1, 1), border_mode="same"))
+    model.add(ELU())
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
+    model.add(Dropout(0.5))
 
-    # (((62 - 3) + 0) / 1.) + 1
-    model.add(Convolution2D(64, 3, 3, subsample=(1, 1)))
-    model.add(ZeroPadding2D(padding=(1, 1)))
-    model.add(Activation('relu'))
+    model.add(Convolution2D(64, 3, 3, subsample=(1, 1), border_mode="same"))
+    model.add(ELU())
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
+    model.add(Dropout(0.5))
 
-    # (((60 - 5) + 4) / 1.) + 1
-    model.add(Convolution2D(64, 3, 3, subsample=(1, 1)))
-    model.add(ZeroPadding2D(padding=(1, 1)))
-    model.add(Activation('relu'))
+    model.add(Convolution2D(128, 3, 3, subsample=(1, 1), border_mode="same"))
+    model.add(ELU())
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
+    model.add(Dropout(0.5))
 
     model.add(Flatten())
-    model.add(Dense(512))
-    model.add(Activation('relu'))
+    model.add(Dense(1024))
+    model.add(Dropout(.5))
+    model.add(Dense(128))
+    model.add(Dropout(.5))
     model.add(Dense(64))
-    model.add(Activation('relu'))
-    model.add(Dense(16))
-    model.add(Activation('relu'))
+    model.add(Dropout(.5))
     model.add(Dense(1))
 
     adam = Adam(lr=0.0001)
@@ -239,10 +244,13 @@ def main():
 
     model = gen_model()
 
-    filepath = "weights-improvement-{epoch:02d}-{val_loss:.4f}.h5"
+    filepath = "./outputs/sim/weights-improvement-{epoch:02d}-{val_loss:.4f}.h5"
     checkpoint = ModelCheckpoint(filepath, verbose=1, save_best_only=True)
     callback = LifecycleCallback()
-        
+    
+    if not os.path.exists("./outputs/sim"):
+        os.makedirs("./outputs/sim")
+
     model.fit_generator(
         transform_generator(X_train, Y_train),
         samples_per_epoch=(len(X_train)*2),
@@ -251,10 +259,7 @@ def main():
         nb_val_samples=len(X_val),
         callbacks=[checkpoint, callback])
 
-    print("Saving model weights and configuration file.")
-
-    if not os.path.exists("./outputs/sim"):
-        os.makedirs("./outputs/sim")
+    print("Saving model weights and configuration file. and we have {} bad files".format(bad))
 
     model.save_weights("./outputs/sim/sim.h5", True)
     with open('./outputs/sim/sim.json', 'w') as outfile:

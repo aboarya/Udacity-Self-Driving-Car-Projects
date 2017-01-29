@@ -79,8 +79,8 @@ if __name__ == '__main__':
         model = model_from_json(json.load(jfile))
 
     model.compile("adam", "mse")
-    weights_file = args.model.replace('json', 'h5')
-    # weights_file = "weights-improvement-78-0.0128.h5"
+    # weights_file = args.model.replace('json', 'h5')
+    weights_file = "outputs/sim/weights-improvement-46-0.0171.h5"
     
     model.load_weights(weights_file)
 
