@@ -2,17 +2,17 @@
 
 ## Overview
 
-* [Network Diagram](#diagram)
-* [Network Definition](#definition)
+* [Model Diagram](#diagram)
+* [Network Architecture](#architecture)
 * [Augmenation and Recovery](#augmentation)
 * [Dataset](#dataset)
 * [Prediction](#prediction)
 
-## Network Architecture
+## Model Diagram
 
 ![model diagram](model.png "Model Diagram")
 
-## Network Definition
+## Network Architecture
 
 > __Resizing__
 > Images are resized in the Generator.  And attempt was made to add a **lambda** resize layer but were unsuccessfull. 
