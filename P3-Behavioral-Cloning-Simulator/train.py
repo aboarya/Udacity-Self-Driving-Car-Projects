@@ -26,19 +26,8 @@ batch_size = 64
 
 img_height, img_width = 64, 64
 
-augment = 1.
-
 global bad
 bad = 0
-
-class LifecycleCallback(Callback):
-
-    def on_epoch_begin(self, epoch, logs={}):
-        pass
-
-    def on_epoch_end(self, epoch, logs={}):
-        global augment
-        augment -= np.random.uniform(0,.15)*epoch
 
 def shuffle(x, y):
     perm = np.arange(len(x))
@@ -141,7 +130,6 @@ def next_batch(data, labels, batch_size):
 
 
 def transform_generator(x, y, batch_size=32, is_validation=False):
-    global augment
     global bad
     while True:
         images, labels = list(), list()
@@ -247,7 +235,6 @@ def main():
 
     filepath = "./outputs/sim/weights-improvement-{epoch:02d}-{val_loss:.4f}.h5"
     checkpoint = ModelCheckpoint(filepath, verbose=1, save_best_only=True)
-    callback = LifecycleCallback()
     
     if not os.path.exists("./outputs/sim"):
         os.makedirs("./outputs/sim")
@@ -258,7 +245,7 @@ def main():
         nb_epoch=nb_epoch,
         validation_data=transform_generator(X_val, Y_val, is_validation=False),
         nb_val_samples=len(X_val),
-        callbacks=[checkpoint, callback])
+        callbacks=[checkpoint])
 
     print("Saving model weights and configuration file. and we have {} bad files".format(bad))
 
