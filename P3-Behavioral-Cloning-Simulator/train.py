@@ -16,6 +16,7 @@ from keras.layers import Activation, Dropout, Flatten, Dense, ELU
 from keras.layers.core import Lambda
 from keras.callbacks import Callback
 from keras.utils import np_utils
+from keras.utils.visualize_util import plot
 
 _index_in_epoch = 0
 
@@ -264,6 +265,8 @@ def main():
     model.save_weights("./outputs/sim/sim.h5", True)
     with open('./outputs/sim/sim.json', 'w') as outfile:
        json.dump(model.to_json(), outfile)
+
+    plot(model, to_file='model.png')
 
 if __name__ == '__main__':
     main()
