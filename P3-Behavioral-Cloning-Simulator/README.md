@@ -11,7 +11,7 @@
 
 ![model diagram](model.png "Model Diagram")
 
-### Network Definition
+### Network Architecture
 
 > __Resizing__
 > Images are resized in the Generator.  And attempt was made to add a **lambda** resize layer but were unsuccessfull. 
