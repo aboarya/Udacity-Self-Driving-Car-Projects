@@ -2,9 +2,9 @@
 
 ## Overview
 
-* [Model Diagram](#diagram)
-* [Network Architecture](#architecture)
-* [Augmenation and Recovery](#augmentation)
+* [Model Diagram](#model-diagram)
+* [Network Architecture](#network-architecture)
+* [Augmenation and Recovery](#augmenation-and-recovery)
 * [Dataset](#dataset)
 * [Prediction](#prediction)
 
