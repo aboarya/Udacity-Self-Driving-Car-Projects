@@ -35,9 +35,9 @@ The following augmentations and data manipulations are perfomed
 1. All __zero__ angle images are dropped; however their __+/- 0.15__ equivelants are kept.
 2. All images are resized to __(64, 64)__.
 3. Images with angles greater than __0.5__; with the exception of the recovery images, are randomly shifted to the right and left.
-    3.1. A random uniform of __+/-1__ decides which direction to shift; __right/left__ respectively.
-    3.2. A random uniform of __10/50__ shifts the image in either direction using __cv2.getAffineTransform__
-    3.3. The angle is __+/-__ adjusted by a factor of __0.004__ for each pixel.  This helps to train the model on additional positions of the car on the track.
+    i. A random uniform of __+/-1__ decides which direction to shift; __right/left__ respectively.
+    ii. A random uniform of __10/50__ shifts the image in either direction using __cv2.getAffineTransform__
+    iii. The angle is __+/-__ adjusted by a factor of __0.004__ for each pixel.  This helps to train the model on additional positions of the car on the track.
 4. Images with a angle greater than __0.15__ are flipped horizontally for additional training on right turns since the track is mostly left turns.
 
 ## Dataset
