@@ -232,7 +232,7 @@ def main():
 
     model = gen_model()
 
-    filepath = "./outputs/sim/weights-improvement-{epoch:02d}-{val_loss:.4f}.h5"
+    filepath = "./model.h5"
     checkpoint = ModelCheckpoint(filepath, verbose=1, save_best_only=True)
     
     if not os.path.exists("./outputs/sim"):
