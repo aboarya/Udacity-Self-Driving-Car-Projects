@@ -30,7 +30,7 @@ Model selection was made through a series of trials.  After much research on neu
 
 Expereince of trials showed that adding a __dropout layer__ after each convlusion, as well as dropping all of the __low angle images__ helps in steadying the car; the car doesn't continually drive left to center to right and back.
 
-Expereince with previous projects helped in selection of the __FC__ layers.  The first __FC__ layer should have as many neurons as the training environment (__GPU__) can allow, followed by drastically smaler second and third __FC__ layers.  Powers of __2__ in the __FC__ layers are also very relevant to the optimization; reduing computional complexity.
+Expereince with previous projects helped in selection of the __FC__ layers.  The first __FC__ layer should have as many neurons as the training environment (__GPU__) can allow, followed by drastically smaller second and third __FC__ layers.  Powers of __2__ in the __FC__ layers are also very relevant to the optimization; reduing computional complexity.
 
 
 ## Model Diagram
