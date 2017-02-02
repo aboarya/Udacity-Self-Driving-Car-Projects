@@ -21,7 +21,7 @@ The dataset consits of images captured while driving a car on a race track using
 
 The difficulty in this task is the ability of the network to generalize given a limited dataset, without the need to exensively drive around the track at each position on the road.
 
-There's an additional second track which has very different light and overall road conditions; such as uphill, as well as a different background.  The goal of generlization is to only use the data from the first track to be able to drive autonomously on both tracks.
+There's an additional second track which has very different light and overall road conditions; such as uphill, shadows, as well as a different background.  The goal of generlization is to only use the data from the first track to be able to drive autonomously on both tracks.
 
 
 ## Model Selection
