@@ -2,11 +2,36 @@
 
 ## Overview
 
+* [Introduction](#introduction)
+* [Model Selection](#model-selection)
 * [Model Diagram](#model-diagram)
 * [Network Architecture](#network-architecture)
 * [Augmenation And Recovery](#augmenation-and-recovery)
 * [Dataset](#dataset)
+* [Training](#training)
 * [Prediction](#prediction)
+
+## Introduction
+
+The goal of the project is to train a self-driving car to predict its steering angle on the road by mimicking the behavior of human drivers.
+
+The challenge is whether an End-to-End Deep Learning approach can be used to train a neural network to predict the steering angle given a lableled dataset.
+
+The dataset consits of images captured while driving a car on a race track using a simulator; similar to a video game.
+
+The difficulty in this task is the ability of the network to generalize given a limited dataset, without the need to exensively drive around the track at each position on the road.
+
+There's an additional second track which has very different light and overall road conditions; such as uphill, as well as a different background.  The goal of generlization is to only use the data from the first track to be able to drive autonomously on both tracks.
+
+
+## Model Selection
+
+Model selection was made through a series of trials.  After much research on neural networks and specifically convolutional neural networks, most of the material recommends using a __3x3x32__ input layer and a __2x2__ max pooling at each layer.
+
+Expereince of trials showed that adding a __dropout layer__ after each convlusion, as well as dropping all of the __low angle images__ helps in steadying the car; the car doesn't continually drive left to center to right and back.
+
+Expereince with previous projects helped in selection of the __FC__ layers.  The first __FC__ layer should have as many neurons as the training environment (__GPU__) can allow, followed by drastically smaler second and third __FC__ layers.  Powers of __2__ in the __FC__ layers are also very relevant to the optimization; reduing computional complexity.
+
 
 ## Model Diagram
 
@@ -42,7 +67,11 @@ The following augmentations and data manipulations are perfomed
 
 ## Dataset
 
-The Udacity.com dataset provided back in late November was used in additional to some training examples recorded via a __PS4__ controller at locations where there is a sharp turn.
+The Udacity.com dataset provided back in late November was used in addition to some training examples recorded via a __PS4__ controller at locations where there is a sharp turn.
+
+## Training
+
+Fifty epochs are used for training due to the size of the dataset after augmention and to prevent overfitting.  The weights of each epoch are saved individually and covnergence was selected based on the lowest validation loss; which was epoch __#47__.
 
 ## Prediction
 
