@@ -26,7 +26,9 @@ There's an additional second track which has very different light and overall ro
 
 ## Model Selection
 
-Model selection was made through a series of trials.  After much research on neural networks and specifically convolutional neural networks, most of the material recommends using a __3x3x32__ input layer and a __2x2__ max pooling at each layer.
+Model selection was made through a series of trials.  After much research on neural networks and specifically convolutional neural networks, most of the material recommends using a __3x3x32__ input layer and a __2x2__ max pooling and a __dropout__ at each layer.
+
+Max pooling is of course useful in reducing the complexity of the output of each convlusion, while a __dropout layer__ between convolusions removes the denpendecy between them.
 
 Expereince of trials showed that adding a __dropout layer__ after each convlusion, as well as dropping all of the __low angle images__ helps in steadying the car; the car doesn't continually drive left to center to right and back.
 
