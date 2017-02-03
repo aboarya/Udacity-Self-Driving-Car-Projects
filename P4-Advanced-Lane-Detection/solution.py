@@ -33,10 +33,10 @@ class Line(object):
         self.diffs = np.array([0, 0, 0], dtype='float')
 
         # x values for detected line pixels
-        self.allx = None
+        self.allx = []
 
         # y values for detected line pixels
-        self.ally = None
+        self.ally = []
 
 
 class LaneDetection(object):
@@ -293,10 +293,11 @@ class LaneDetection(object):
         return cv2.warpPerspective(binary, M, self.img_size)
 
     def sliding_windows(self, binary_warped, out_img):
-        # 
+        #
         def slide(window):
             # Identify window boundaries in x and y (and right and left)
-            win_y_low = binary_warped.shape[0] - (window + 1) * self.window_height
+            win_y_low = binary_warped.shape[
+                0] - (window + 1) * self.window_height
 
             win_y_high = binary_warped.shape[0] - window * self.window_height
 
@@ -376,9 +377,18 @@ class LaneDetection(object):
         righty = nonzeroy[right_lane_inds]
 
         # Fit a second order polynomial to each
-        self.left_fit = np.polyfit(lefty, leftx, 2)
+        self.left_line.current_fit = np.polyfit(lefty, leftx, 2)
 
-        self.right_fit = np.polyfit(righty, rightx, 2)
+        self.right_line.current_fit = np.polyfit(righty, rightx, 2)
+
+        # add points to left/right lines
+        self.left_line.allx.append(leftx)
+
+        self.left_line.ally.append(lefty)
+
+        self.right_line.allx.append(rightx)
+
+        self.right_line.ally.append(righty)
 
     def detect_lines_first_frame(self, binary_warped):
         # Assuming you have created a warped binary image called "binary_warped"
@@ -403,8 +413,8 @@ class LaneDetection(object):
         # This is ONLY for plotting
         # Generate x and y values for plotting
 #         ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
-#         left_fitx = self.left_fit[0]*ploty**2 + self.left_fit[1]*ploty + self.left_fit[2]
-#         right_fitx = self.right_fit[0]*ploty**2 + self.right_fit[1]*ploty + self.right_fit[2]
+#         left_fitx = self.left_line.current_fit[0]*ploty**2 + self.left_line.current_fit[1]*ploty + self.left_line.current_fit[2]
+#         right_fitx = self.right_line.current_fit[0]*ploty**2 + self.right_line.current_fit[1]*ploty + self.right_line.current_fit[2]
 
 #         out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
 #         out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
@@ -423,11 +433,13 @@ class LaneDetection(object):
 
         # Fit new polynomials to x,y in world space
         left_fit_cr = np.polyfit(lefty * ym_per_pix, leftx * xm_per_pix, 2)
+
         right_fit_cr = np.polyfit(righty * ym_per_pix, rightx * xm_per_pix, 2)
 
         # Calculate the new radii of curvature
         left_curverad = ((1 + (2 * left_fit_cr[0] * y_eval * ym_per_pix + left_fit_cr[
                          1])**2)**1.5) / np.absolute(2 * left_fit_cr[0])
+
         right_curverad = ((1 + (2 * right_fit_cr[0] * y_eval * ym_per_pix + right_fit_cr[
                           1])**2)**1.5) / np.absolute(2 * right_fit_cr[0])
 
@@ -446,16 +458,19 @@ class LaneDetection(object):
         margin = 100
 
         left_lane_inds = ((nonzerox >
-                           (self.left_fit[0] * (nonzeroy**2)
-                            + self.left_fit[1] * nonzeroy
-                            + self.left_fit[2] - margin)) &
-                          (nonzerox < (self.left_fit[0] * (nonzeroy**2)
-                                       + self.left_fit[1] * nonzeroy + self.left_fit[2] + margin)))
+                           (self.left_line.current_fit[0] * (nonzeroy**2)
+                            + self.left_line.current_fit[1] * nonzeroy
+                            + self.left_line.current_fit[2] - margin))
+                          & (nonzerox < (self.left_line.current_fit[0] * (nonzeroy**2)
+                                         + self.left_line.current_fit[1] * nonzeroy
+                                         + self.left_line.current_fit[2] + margin)))
 
-        right_lane_inds = ((nonzerox > (self.right_fit[0] * (nonzeroy**2)
-                                        + self.right_fit[1] * nonzeroy + self.right_fit[2] - margin)) &
-                           (nonzerox < (self.right_fit[0] * (nonzeroy**2)
-                                        + self.right_fit[1] * nonzeroy + self.right_fit[2] + margin)))
+        right_lane_inds = ((nonzerox > (self.right_line.current_fit[0] * (nonzeroy**2)
+                                        + self.right_line.current_fit[1] * nonzeroy
+                                        + self.right_line.current_fit[2] - margin))
+                           & (nonzerox < (self.right_line.current_fit[0] * (nonzeroy**2)
+                                          + self.right_line.current_fit[1] * nonzeroy
+                                          + self.right_line.current_fit[2] + margin)))
 
         # Again, extract left and right line pixel positions
         leftx = nonzerox[left_lane_inds]
@@ -463,16 +478,18 @@ class LaneDetection(object):
         rightx = nonzerox[right_lane_inds]
         righty = nonzeroy[right_lane_inds]
         # Fit a second order polynomial to each
-        self.left_fit = np.polyfit(lefty, leftx, 2)
-        self.right_fit = np.polyfit(righty, rightx, 2)
+        self.left_line.current_fit = np.polyfit(lefty, leftx, 2)
+        self.right_line.current_fit = np.polyfit(righty, rightx, 2)
 
         # Generate x and y values for plotting
         ploty = np.linspace(0, binary_warped.shape[
                             0] - 1, binary_warped.shape[0])
-        left_fitx = self.left_fit[0] * ploty**2 + \
-            self.left_fit[1] * ploty + self.left_fit[2]
-        right_fitx = self.right_fit[0] * ploty**2 + \
-            self.right_fit[1] * ploty + self.right_fit[2]
+        left_fitx = self.left_line.current_fit[0] * ploty**2 + \
+            self.left_line.current_fit[1] * \
+            ploty + self.left_line.current_fit[2]
+        right_fitx = self.right_line.current_fit[0] * ploty**2 + \
+            self.right_line.current_fit[1] * \
+            ploty + self.right_line.current_fit[2]
 
         # Create an image to draw on and an image to show the selection window
         out_img = np.dstack(
