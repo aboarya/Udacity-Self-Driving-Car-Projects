@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import glob
 
-# Define a class to receive the characteristics of each line detection
+from moviepy.editor import VideoFileClip
 
 
 class Line(object):
@@ -50,7 +50,7 @@ class Line(object):
 
 class LaneDetection(object):
 
-    def __init__(self, cal_images, test_image, input_video_file, output_video_file):
+    def __init__(self, cal_images, test_image):
         # number of frames in video
         self.count = -1
 
@@ -69,12 +69,6 @@ class LaneDetection(object):
         # calibrate the camera with the test image
         self.calibrate_camera(cv2.imread(test_image))
 
-        # create a video reader
-        self.reader = cv2.VideoCapture(input_video_file)
-
-        # read first frame to get dimensions
-        self.ret, self.first_frame = self.reader.read()
-
         # Define conversions in x and y from pixels space to meters
         self.ym_per_pix = 30 / 720  # meters per pixel in y dimension
 
@@ -90,13 +84,6 @@ class LaneDetection(object):
 
         # right line data
         self.right_line = Line()
-
-        if self.ret:
-            # video writer
-            self.writer = cv2.VideoWriter(output_video_file,
-                                          cv2.VideoWriter_fourcc(*"H264"),
-                                          25,
-                                          self.first_frame.shape[:2], False)
 
     def set_obj_and_img_points(self):
         # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
@@ -150,238 +137,123 @@ class LaneDetection(object):
     def to_rgb(self, img):
         return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    # def abs_sobel_thresh(self, gray, orient='x', thresh_min=40, thresh_max=200, ksize=5):
-    #     # Apply x or y gradient with the OpenCV Sobel() function
-    #     # and take the absolute value
-    #     if orient == 'x':
-    #         abs_sobel = np.absolute(
-    #             cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize))
-    #     if orient == 'y':
-    #         abs_sobel = np.absolute(
-    #             cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize))
-
-    #     # Rescale back to 8 bit integer
-    #     scaled_sobel = np.uint8(255 * abs_sobel / np.max(abs_sobel))
-
-    #     # Create a copy and apply the threshold
-    #     binary_output = np.zeros_like(scaled_sobel)
-
-    #     binary_output[(scaled_sobel >= thresh_min) &
-    #                   (scaled_sobel <= thresh_max)] = 1
-
-    #     # Return the result
-    #     return binary_output
-
-    # def mag_thresh(self, gray, thresh_min=40, thresh_max=250, ksize=7):
-    #     # Take both Sobel x and y gradients
-    #     sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize)
-
-    #     sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize)
-
-    #     # Calculate the gradient magnitude
-    #     gradmag = np.sqrt(sobelx**2 + sobely**2)
-
-    #     # Rescale to 8 bit
-    #     scale_factor = np.max(gradmag) / 255
-
-    #     gradmag = (gradmag / scale_factor).astype(np.uint8)
-
-    #     # Create a binary image of ones where threshold is met, zeros otherwise
-    #     binary_output = np.zeros_like(gradmag)
-
-    #     binary_output[(gradmag >= thresh_min) & (gradmag <= thresh_max)] = 1
-
-    #     # Return the binary image
-    #     return binary_output
-
-    # def dir_threshold(self, gray, ksize=7, thresh=(0.7, 1.3)):
-
-    #     # Calculate the x and y gradients
-    #     sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize)
-
-    #     sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize)
-
-    #     # Take the absolute value of the gradient direction,
-    #     # apply a threshold, and create a binary image result
-    #     absgraddir = np.arctan2(np.absolute(sobely), np.absolute(sobelx))
-
-    #     binary_output = np.zeros_like(absgraddir)
-
-    #     binary_output[(absgraddir >= thresh[0]) &
-    #                   (absgraddir <= thresh[1])] = 1
-
-    #     # Return the binary image
-    #     return binary_output
-
-    # def gradient_binary(self, gray, thresh_min=40, thresh_max=250, ksize=7, thresh=(0.7, 1.3)):
-    #     # Apply each of the thresholding functions
-    #     gradx = self.abs_sobel_thresh(gray,
-    #                                   orient='x',
-    #                                   thresh_min=thresh_min,
-    #                                   thresh_max=thresh_max,
-    #                                   ksize=ksize)
-
-    #     grady = self.abs_sobel_thresh(gray,
-    #                                   orient='y',
-    #                                   thresh_min=thresh_min,
-    #                                   thresh_max=thresh_max,
-    #                                   ksize=ksize)
-
-    #     mag_binary = self.mag_thresh(gray,
-    #                                  thresh_min=thresh_min,
-    #                                  thresh_max=thresh_max,
-    #                                  ksize=ksize)
-
-    #     dir_binary = self.dir_threshold(gray, ksize=ksize, thresh=thresh)
-
-    #     # combine all thresholded images
-    #     combined = np.zeros_like(dir_binary)
-
-    #     combined[((gradx == 1) & (grady == 1)) | (
-    #         (mag_binary == 1) & (dir_binary == 1))] = 1
-
-    #     # Return the result
-    #     return combined
-
     def abs_sobel_thresh(self, gray, orient='x', thresh_min=40, thresh_max=200, ksize=5):
         # Apply x or y gradient with the OpenCV Sobel() function
         # and take the absolute value
         if orient == 'x':
-            abs_sobel = np.absolute(cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize))
+            abs_sobel = np.absolute(
+                cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize))
         if orient == 'y':
-            abs_sobel = np.absolute(cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize))
-        
+            abs_sobel = np.absolute(
+                cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize))
+
         # Rescale back to 8 bit integer
         scaled_sobel = np.uint8(255 * abs_sobel / np.max(abs_sobel))
-        
+
         # Create a copy and apply the threshold
         binary_output = np.zeros_like(scaled_sobel)
-        
-        binary_output[(scaled_sobel >= thresh_min) & (scaled_sobel <= thresh_max)] = 1
+
+        binary_output[(scaled_sobel >= thresh_min) &
+                      (scaled_sobel <= thresh_max)] = 1
 
         # Return the result
         return binary_output
-    
+
     def mag_thresh(self, gray, thresh_min=40, thresh_max=250, ksize=7):
         # Take both Sobel x and y gradients
         sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize)
-        
+
         sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize)
-        
+
         # Calculate the gradient magnitude
         gradmag = np.sqrt(sobelx**2 + sobely**2)
-        
+
         # Rescale to 8 bit
-        scale_factor = np.max(gradmag) / 255 
-        
-        gradmag = (gradmag/scale_factor).astype(np.uint8) 
-        
+        scale_factor = np.max(gradmag) / 255
+
+        gradmag = (gradmag / scale_factor).astype(np.uint8)
+
         # Create a binary image of ones where threshold is met, zeros otherwise
         binary_output = np.zeros_like(gradmag)
-        
+
         binary_output[(gradmag >= thresh_min) & (gradmag <= thresh_max)] = 1
 
         # Return the binary image
         return binary_output
-    
+
     def dir_threshold(self, gray, ksize=7, thresh=(0.7, 1.3)):
 
         # Calculate the x and y gradients
         sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize)
-        
+
         sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize)
-        
-        # Take the absolute value of the gradient direction, 
+
+        # Take the absolute value of the gradient direction,
         # apply a threshold, and create a binary image result
         absgraddir = np.arctan2(np.absolute(sobely), np.absolute(sobelx))
-        
-        binary_output =  np.zeros_like(absgraddir)
-        
-        binary_output[(absgraddir >= thresh[0]) & (absgraddir <= thresh[1])] = 1
+
+        binary_output = np.zeros_like(absgraddir)
+
+        binary_output[(absgraddir >= thresh[0]) &
+                      (absgraddir <= thresh[1])] = 1
 
         # Return the binary image
         return binary_output
-    
+
     def gradient_binary(self, gray, thresh_min=40, thresh_max=250, ksize=7, thresh=(0.7, 1.3)):
         # Apply each of the thresholding functions
-        gradx = self.abs_sobel_thresh(gray, orient='x', thresh_min=thresh_min, thresh_max=thresh_max, ksize=ksize)
+        gradx = self.abs_sobel_thresh(
+            gray, orient='x', thresh_min=thresh_min, thresh_max=thresh_max, ksize=ksize)
 
-        grady = self.abs_sobel_thresh(gray, orient='y', thresh_min=thresh_min, thresh_max=thresh_max, ksize=ksize)
+        grady = self.abs_sobel_thresh(
+            gray, orient='y', thresh_min=thresh_min, thresh_max=thresh_max, ksize=ksize)
 
-        mag_binary = self.mag_thresh(gray, thresh_min=thresh_min, thresh_max=thresh_max, ksize=ksize)
+        mag_binary = self.mag_thresh(
+            gray, thresh_min=thresh_min, thresh_max=thresh_max, ksize=ksize)
 
         dir_binary = self.dir_threshold(gray, ksize=ksize, thresh=thresh)
-        
+
         combined = np.zeros_like(dir_binary)
-        
-        combined[((gradx == 1) & (grady == 1)) | ((mag_binary == 1) & (dir_binary == 1))] = 1
-        
+
+        combined[((gradx == 1) & (grady == 1)) | (
+            (mag_binary == 1) & (dir_binary == 1))] = 1
+
         # Return the result
         return combined
 
     def binary_transform(self, img, thresh_min=40, thresh_max=250, ksize=7, thresh=(0.7, 1.3), hls_thresh=(175, 255)):
-        
+
         gray = self.to_gray(img)
-        
+
         # Threshold gradient
         sxbinary = self.gradient_binary(gray)
-    
+
         # Threshold color channel
         s_binary = self.to_hls(img)
-    
+
         # Stack each channel to view their individual contributions in green and blue respectively
-         # This returns a stack of the two binary images, whose components you can see as different colors
+        # This returns a stack of the two binary images, whose components you
+        # can see as different colors
         color_binary = np.dstack((np.zeros_like(sxbinary), sxbinary, s_binary))
-    
+
         # Combine the two binary thresholds
         combined_binary = np.zeros_like(sxbinary)
         combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
-        
+
         # Return the result
         return combined_binary
-    
+
     def to_hls(self, img, hls_thresh=(50, 200)):
         hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
-        
-        s_channel = hls[:,:,2]
-        
+
+        s_channel = hls[:, :, 2]
+
         binary_output = np.zeros_like(s_channel)
-        
-        binary_output[(s_channel > hls_thresh[0]) & (s_channel <= hls_thresh[1])] = 1
-        
+
+        binary_output[(s_channel > hls_thresh[0]) &
+                      (s_channel <= hls_thresh[1])] = 1
+
         return binary_output
-
-#     def s_binary(self, img, thresh=(15, 100)):
-#         # Threshold color channel
-#         hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
-#         H = hls[:,:,0]
-#         L = hls[:,:,1]
-#         S = hls[:,:,2]
-#         # Stack each channel to view their individual contributions in green and blue respectively
-#         # This returns a stack of the two binary images, whose components you
-#         # can see as different colors
-#         binary = np.zeros_like(H)
-#         binary[(H > thresh[0]) & (H <= thresh[1])] = 1
-
-#         return binary
-
-#     def binary_transform(self, img, thresh_min=40, thresh_max=250, ksize=7, thresh=(0.7, 1.3), hls_thresh=(175, 255)):
-
-#         # gray = self.to_gray(img)
-
-#         # Gradient threshold
-#         # gradient_binary = self.gradient_binary(
-#         #     gray, thresh_min=thresh_min, thresh_max=thresh_max, ksize=ksize, thresh=thresh)
-
-#         # S threshold
-#         s_binary = self.s_binary(img)
-
-#         # Combine the two binary thresholds
-# #         combined_binary = np.zeros_like(gradient_binary)
-# #         combined_binary[(s_binary == 1) | (gradient_binary == 1)] = 1
-
-#         # Return the result
-#         return s_binary
 
     def to_hls(self, img, hls_thresh=(50, 200)):
         hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
@@ -409,18 +281,6 @@ class LaneDetection(object):
              [(self.img_size[0] / 4), self.img_size[1]],
              [(self.img_size[0] * 3 / 4), self.img_size[1]],
              [(self.img_size[0] * 3 / 4), 0]])
-
-#         self.src = np.float32([
-#             [  585., 460.],
-#             [  286 , 675.],
-#             [ 1005 , 675.],
-#             [  695., 460.]])
-
-#         self.dst = np.float32([
-#             [ 320.,    0.],
-#             [ 320.,  720.],
-#             [ 960.,  720.],
-#             [ 960.,    0.]])
 
         # Given src and dst points, calculate the perspective transform matrix
         M = cv2.getPerspectiveTransform(self.src, self.dst)
@@ -482,7 +342,7 @@ class LaneDetection(object):
 
         # Current positions to be updated for each window
         leftx_current = leftx_base
-        
+
         rightx_current = rightx_base
 
         # Create empty lists to receive left and right lane pixel indices
@@ -503,17 +363,19 @@ class LaneDetection(object):
     def set_lane_lines(self, nonzerox, nonzeroy):
         # Again, extract left and right line pixel positions
         self.left_line.x = nonzerox[self.left_line.inds]
-        
+
         self.left_line.y = nonzeroy[self.left_line.inds]
-        
+
         self.right_line.x = nonzerox[self.right_line.inds]
-        
+
         self.right_line.y = nonzeroy[self.right_line.inds]
-        
+
         # Fit a second order polynomial to each
-        self.left_line.current_fit = np.polyfit(self.left_line.y, self.left_line.x, 2)
-        
-        self.right_line.current_fit = np.polyfit(self.right_line.y, self.right_line.x, 2)
+        self.left_line.current_fit = np.polyfit(
+            self.left_line.y, self.left_line.x, 2)
+
+        self.right_line.current_fit = np.polyfit(
+            self.right_line.y, self.right_line.x, 2)
 
         # append polynomia for use in average
         self.left_line.polyfits.append(self.left_line.current_fit)
@@ -525,7 +387,6 @@ class LaneDetection(object):
         self.right_line.average_fit()
 
         self.radius_to_meters()
-
 
     def detect_lines_using_windows(self, binary_warped, orig):
         # Assuming you have created a warped binary image called "binary_warped"
@@ -552,7 +413,8 @@ class LaneDetection(object):
 
         self.right_line.line_base_pos = rightx_base
 
-        nonzeroy, nonzerox = self.sliding_windows(binary_warped, out_img, leftx_base, rightx_base)
+        nonzeroy, nonzerox = self.sliding_windows(
+            binary_warped, out_img, leftx_base, rightx_base)
 
         self.set_lane_lines(nonzerox, nonzeroy)
 
@@ -565,8 +427,6 @@ class LaneDetection(object):
         self.right_line.detected = True
 
         return self.project_lane(binary_warped, orig, nonzeroy, nonzerox)
-
-        
 
     def radius_to_meters(self):
         y_eval = np.max(self.ploty)
@@ -585,11 +445,6 @@ class LaneDetection(object):
         self.right_line.radius_of_curvature = ((1 + (2 * right_fit_cr[0] * y_eval * self.ym_per_pix + right_fit_cr[
             1])**2)**1.5) / np.absolute(2 * right_fit_cr[0])
 
-        # Now our radius of curvature is in meters
-#         print(left_curverad*3.28084, 'ft', right_curverad*3.28084, 'ft')
-#         print(left_curverad, 'm', right_curverad, 'm')
-#         Example values: 632.1 m    626.2 m
-
     def distance_to_center_in_meters(self, x_base, midpoint):
         return abs(x_base - midpoint) * self.pix_to_meter
 
@@ -602,37 +457,37 @@ class LaneDetection(object):
         nonzerox = np.array(nonzero[1])
 
         self.left_line.inds = ((nonzerox >
-                           (self.left_line.current_fit[0] * (nonzeroy**2)
-                            + self.left_line.current_fit[1] * nonzeroy
-                            + self.left_line.current_fit[2] - self.margin))
-                          & (nonzerox < (self.left_line.current_fit[0] * (nonzeroy**2)
-                                         + self.left_line.current_fit[1] * nonzeroy
-                                         + self.left_line.current_fit[2] + self.margin)))
+                                (self.left_line.current_fit[0] * (nonzeroy**2)
+                                 + self.left_line.current_fit[1] * nonzeroy
+                                 + self.left_line.current_fit[2] - self.margin))
+                               & (nonzerox < (self.left_line.current_fit[0] * (nonzeroy**2)
+                                              + self.left_line.current_fit[1] * nonzeroy
+                                              + self.left_line.current_fit[2] + self.margin)))
 
         self.right_line.inds = ((nonzerox > (self.right_line.current_fit[0] * (nonzeroy**2)
-                                        + self.right_line.current_fit[1] * nonzeroy
-                                        + self.right_line.current_fit[2] - self.margin))
-                           & (nonzerox < (self.right_line.current_fit[0] * (nonzeroy**2)
-                                          + self.right_line.current_fit[1] * nonzeroy
-                                          + self.right_line.current_fit[2] + self.margin)))
+                                             + self.right_line.current_fit[1] * nonzeroy
+                                             + self.right_line.current_fit[2] - self.margin))
+                                & (nonzerox < (self.right_line.current_fit[0] * (nonzeroy**2)
+                                               + self.right_line.current_fit[1] * nonzeroy
+                                               + self.right_line.current_fit[2] + self.margin)))
 
         self.set_lane_lines(nonzerox, nonzeroy)
 
         self.sanity_check(binary_warped, orig, prev=True)
 
         return self.project_lane(binary_warped, orig, nonzeroy, nonzerox)
-        
 
     def sanity_check(self, binary_warped, orig, prev=False):
         # check that lines are roughly parrellel
         parrellel = True
         center = True
-        
+
         # if abs(self.left_line.radius_of_curvature - self.right_line.radius_of_curvature) > 750:
         #     parrellel = False
 
         if (self.left_line.line_base_pos + self.right_line.line_base_pos) < self.midpoint:
-            print('off center ', self.count, self.left_line.line_base_pos, self.right_line.line_base_pos, self.lane_width)
+            print('off center ', self.count, self.left_line.line_base_pos,
+                  self.right_line.line_base_pos, self.lane_width)
             center = False
 
         if center and parrellel:
@@ -645,19 +500,24 @@ class LaneDetection(object):
 
             self.right_line.detected = False
 
-            print(self.bad_count, 'on frame', self.count, ' .... ', 'reverting to windows')
+            print(self.bad_count, 'on frame', self.count,
+                  ' .... ', 'reverting to windows')
 
             self.detect_lines_using_windows(binary_warped, orig)
 
         if prev and not center:
             print('bad count', self.bad_count, 'on frame', self.count)
-            print(abs(self.left_line.radius_of_curvature - self.right_line.radius_of_curvature))
-            print((self.left_line.line_base_pos + self.right_line.line_base_pos) , self.midpoint)
+            print(abs(self.left_line.radius_of_curvature -
+                      self.right_line.radius_of_curvature))
+            print((self.left_line.line_base_pos +
+                   self.right_line.line_base_pos), self.midpoint)
             self.bad_count += 1
 
-            self.left_line.current_fit = self.left_line.polyfits[self.count-self.bad_count]
+            self.left_line.current_fit = self.left_line.polyfits[
+                self.count - self.bad_count]
 
-            self.right_line.current_fit = self.right_line.polyfits[self.count-self.bad_count]
+            self.right_line.current_fit = self.right_line.polyfits[
+                self.count - self.bad_count]
 
             self.detect_lines_from_previous(binary_warped, orig)
 
@@ -719,10 +579,14 @@ class LaneDetection(object):
         result = cv2.addWeighted(orig, 1, newwarp, 0.3, 0)
         # plt.imshow(self.to_rgb(result))
 
-        cv2.imwrite(
-            './output_images/lanes_detected{}.jpg'.format(self.count), result)
+        # cv2.imwrite(
+        #     './output_images/lanes_detected{}.jpg'.format(self.count), result)
+        txt = """Left curvature {}
+        Right curvature {}""".format(self.left_line.radius_of_curvature,
+                                     self.right_line.radius_of_curvature)
 
-        # self.writer.write(result)
+        cv2.putText(result, txt, (75, 110), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+
         return result
 
     def process_image(self, img):
@@ -735,39 +599,23 @@ class LaneDetection(object):
 
         # Generate x and y values for plotting
         self.ploty = np.linspace(0, binary_warped.shape[
-                            0] - 1, binary_warped.shape[0])
+            0] - 1, binary_warped.shape[0])
 
         if self.left_line.detected and self.right_line.detected:
             return self.detect_lines_from_previous(binary_warped, img)
 
         return self.detect_lines_using_windows(binary_warped, img)
 
-
-
-import re
-
-def atoi(text):
-    return int(text) if text.isdigit() else text
-
-def natural_keys(text):
-    '''
-    alist.sort(key=natural_keys) sorts in human order
-    http://nedbatchelder.com/blog/200712/human_sorting.html
-    (See Toothy's implementation in the comments)
-    '''
-    return [ atoi(c) for c in re.split('(\d+)', text) ]
-
-alist = glob.glob('./project_video_export/*.jpg')
-alist.sort(key=natural_keys)
-
 images = glob.glob('camera_cal/calibration*.jpg')
 # use one image as calibration
 test_image = images.pop(-1)
 
 # create instance of LaneDetection class
-ld = LaneDetection(images, test_image,
-                       'project_video.mp4', 'output_video.mp4')
+ld = LaneDetection(images, test_image)
 
-for img in alist:
-    print('processing', img)
-    ld.process_image(cv2.imread(img))
+white_output = 'output_video.mp4'
+clip1 = VideoFileClip("project_video.mp4")
+# NOTE: this function expects color images!!
+white_clip = clip1.fl_image(ld.process_image)
+white_clip.write_videofile(white_output, audio=False)
+
