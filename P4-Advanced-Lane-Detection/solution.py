@@ -36,10 +36,10 @@ class Line(object):
         self.diffs = np.array([0, 0, 0], dtype='float')
 
         # x values for detected line pixels
-        self.allx = []
+        self.x = []
 
         # y values for detected line pixels
-        self.ally = []
+        self.y = []
 
         # indices of the lane segment
         self.inds = []
@@ -52,7 +52,7 @@ class LaneDetection(object):
 
     def __init__(self, cal_images, test_image, input_video_file, output_video_file):
         # number of frames in video
-        self.count = 0
+        self.count = -1
 
         # the number of sliding windows
         self.nwindows = 9
@@ -82,6 +82,8 @@ class LaneDetection(object):
 
         # pixel to meter conversion
         self.pix_to_meter = 0.0002636
+
+        self.lane_width = 530
 
         # left line data
         self.left_line = Line()
@@ -241,35 +243,37 @@ class LaneDetection(object):
         # Return the result
         return combined
 
-    def s_binary(self, img, gradient_binary):
+    def s_binary(self, img, thresh=(15, 100)):
         # Threshold color channel
-        s_binary = self.to_hls(img)
-
+        hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+        H = hls[:,:,0]
+        L = hls[:,:,1]
+        S = hls[:,:,2]
         # Stack each channel to view their individual contributions in green and blue respectively
         # This returns a stack of the two binary images, whose components you
         # can see as different colors
-        color_binary = np.dstack(
-            (np.zeros_like(gradient_binary), gradient_binary, s_binary))
+        binary = np.zeros_like(H)
+        binary[(H > thresh[0]) & (H <= thresh[1])] = 1
 
-        return color_binary
+        return binary
 
     def binary_transform(self, img, thresh_min=40, thresh_max=250, ksize=7, thresh=(0.7, 1.3), hls_thresh=(175, 255)):
 
-        gray = self.to_gray(img)
+        # gray = self.to_gray(img)
 
         # Gradient threshold
-        gradient_binary = self.gradient_binary(
-            gray, thresh_min=thresh_min, thresh_max=thresh_max, ksize=ksize, thresh=thresh)
+        # gradient_binary = self.gradient_binary(
+        #     gray, thresh_min=thresh_min, thresh_max=thresh_max, ksize=ksize, thresh=thresh)
 
         # S threshold
-        s_binary = self.s_binary(img, gradient_binary)
+        s_binary = self.s_binary(img)
 
         # Combine the two binary thresholds
 #         combined_binary = np.zeros_like(gradient_binary)
 #         combined_binary[(s_binary == 1) | (gradient_binary == 1)] = 1
 
         # Return the result
-        return gradient_binary
+        return s_binary
 
     def to_hls(self, img, hls_thresh=(50, 200)):
         hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
@@ -427,17 +431,18 @@ class LaneDetection(object):
 
         # Find the peak of the left and right halves of the histogram
         # These will be the starting point for the left and right lines
-        midpoint = np.int(histogram.shape[0] / 2)
+
+        midpoint = np.int(histogram.shape[0] / 2.)
+
+        self.midpoint = midpoint
 
         leftx_base = np.argmax(histogram[:midpoint])
 
         rightx_base = np.argmax(histogram[midpoint:]) + midpoint
 
-        self.left_line.line_base_pos = self.distance_to_center_in_meters(
-            leftx_base, midpoint)
+        self.left_line.line_base_pos = leftx_base
 
-        self.right_line.line_base_pos = self.distance_to_center_in_meters(
-            rightx_base, midpoint)
+        self.right_line.line_base_pos = rightx_base
 
         nonzeroy, nonzerox = self.sliding_windows(binary_warped, out_img, leftx_base, rightx_base)
 
@@ -445,9 +450,15 @@ class LaneDetection(object):
 
         self.radius_to_meters()
 
-        self.sanity_check()
+        self.sanity_check(binary_warped, orig)
+
+        self.left_line.detected = True
+
+        self.right_line.detected = True
 
         return self.project_lane(binary_warped, orig, nonzeroy, nonzerox)
+
+        
 
     def radius_to_meters(self):
         y_eval = np.max(self.ploty)
@@ -499,17 +510,48 @@ class LaneDetection(object):
 
         self.set_lane_lines(nonzerox, nonzeroy)
 
-        self.sanity_check()
+        self.sanity_check(binary_warped, orig, prev=True)
 
         return self.project_lane(binary_warped, orig, nonzeroy, nonzerox)
         
 
-    def sanity_check(self):
+    def sanity_check(self, binary_warped, orig, prev=False):
         # check that lines are roughly parrellel
+        parrellel = True
+        center = True
+        
+        # if abs(self.left_line.radius_of_curvature - self.right_line.radius_of_curvature) > 750:
+        #     parrellel = False
 
-        if abs(self.left_line.radius_of_curvature - self.right_line.radius_of_curvature) > 300:
-            pass
+        if (self.left_line.line_base_pos + self.right_line.line_base_pos) < self.midpoint:
+            print('off center ', self.count, self.left_line.line_base_pos, self.right_line.line_base_pos, self.lane_width)
+            center = False
 
+        if center and parrellel:
+            self.bad_count = 0
+            return
+
+        if self.bad_count > 3:
+            self.bad_count = 0
+            self.left_line.detected = False
+
+            self.right_line.detected = False
+
+            print(self.bad_count, 'on frame', self.count, ' .... ', 'reverting to windows')
+
+            self.detect_lines_using_windows(binary_warped, orig)
+
+        if prev and not center:
+            print('bad count', self.bad_count, 'on frame', self.count)
+            print(abs(self.left_line.radius_of_curvature - self.right_line.radius_of_curvature))
+            print((self.left_line.line_base_pos + self.right_line.line_base_pos) , self.midpoint)
+            self.bad_count += 1
+
+            self.left_line.current_fit = self.left_line.polyfits[self.count-self.bad_count]
+
+            self.right_line.current_fit = self.right_line.polyfits[self.count-self.bad_count]
+
+            self.detect_lines_from_previous(binary_warped, orig)
 
     def project_lane(self, binary_warped, orig, nonzeroy, nonzerox):
 
@@ -594,3 +636,30 @@ class LaneDetection(object):
 
 
 
+import re
+
+def atoi(text):
+    return int(text) if text.isdigit() else text
+
+def natural_keys(text):
+    '''
+    alist.sort(key=natural_keys) sorts in human order
+    http://nedbatchelder.com/blog/200712/human_sorting.html
+    (See Toothy's implementation in the comments)
+    '''
+    return [ atoi(c) for c in re.split('(\d+)', text) ]
+
+alist = glob.glob('./project_video_export/*.jpg')
+alist.sort(key=natural_keys)
+
+images = glob.glob('camera_cal/calibration*.jpg')
+# use one image as calibration
+test_image = images.pop(-1)
+
+# create instance of LaneDetection class
+ld = LaneDetection(images, test_image,
+                       'project_video.mp4', 'output_video.mp4')
+
+for img in alist:
+    print('processing', img)
+    ld.process_image(cv2.imread(img))
