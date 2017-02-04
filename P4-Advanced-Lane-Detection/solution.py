@@ -150,130 +150,238 @@ class LaneDetection(object):
     def to_rgb(self, img):
         return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
+    # def abs_sobel_thresh(self, gray, orient='x', thresh_min=40, thresh_max=200, ksize=5):
+    #     # Apply x or y gradient with the OpenCV Sobel() function
+    #     # and take the absolute value
+    #     if orient == 'x':
+    #         abs_sobel = np.absolute(
+    #             cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize))
+    #     if orient == 'y':
+    #         abs_sobel = np.absolute(
+    #             cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize))
+
+    #     # Rescale back to 8 bit integer
+    #     scaled_sobel = np.uint8(255 * abs_sobel / np.max(abs_sobel))
+
+    #     # Create a copy and apply the threshold
+    #     binary_output = np.zeros_like(scaled_sobel)
+
+    #     binary_output[(scaled_sobel >= thresh_min) &
+    #                   (scaled_sobel <= thresh_max)] = 1
+
+    #     # Return the result
+    #     return binary_output
+
+    # def mag_thresh(self, gray, thresh_min=40, thresh_max=250, ksize=7):
+    #     # Take both Sobel x and y gradients
+    #     sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize)
+
+    #     sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize)
+
+    #     # Calculate the gradient magnitude
+    #     gradmag = np.sqrt(sobelx**2 + sobely**2)
+
+    #     # Rescale to 8 bit
+    #     scale_factor = np.max(gradmag) / 255
+
+    #     gradmag = (gradmag / scale_factor).astype(np.uint8)
+
+    #     # Create a binary image of ones where threshold is met, zeros otherwise
+    #     binary_output = np.zeros_like(gradmag)
+
+    #     binary_output[(gradmag >= thresh_min) & (gradmag <= thresh_max)] = 1
+
+    #     # Return the binary image
+    #     return binary_output
+
+    # def dir_threshold(self, gray, ksize=7, thresh=(0.7, 1.3)):
+
+    #     # Calculate the x and y gradients
+    #     sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize)
+
+    #     sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize)
+
+    #     # Take the absolute value of the gradient direction,
+    #     # apply a threshold, and create a binary image result
+    #     absgraddir = np.arctan2(np.absolute(sobely), np.absolute(sobelx))
+
+    #     binary_output = np.zeros_like(absgraddir)
+
+    #     binary_output[(absgraddir >= thresh[0]) &
+    #                   (absgraddir <= thresh[1])] = 1
+
+    #     # Return the binary image
+    #     return binary_output
+
+    # def gradient_binary(self, gray, thresh_min=40, thresh_max=250, ksize=7, thresh=(0.7, 1.3)):
+    #     # Apply each of the thresholding functions
+    #     gradx = self.abs_sobel_thresh(gray,
+    #                                   orient='x',
+    #                                   thresh_min=thresh_min,
+    #                                   thresh_max=thresh_max,
+    #                                   ksize=ksize)
+
+    #     grady = self.abs_sobel_thresh(gray,
+    #                                   orient='y',
+    #                                   thresh_min=thresh_min,
+    #                                   thresh_max=thresh_max,
+    #                                   ksize=ksize)
+
+    #     mag_binary = self.mag_thresh(gray,
+    #                                  thresh_min=thresh_min,
+    #                                  thresh_max=thresh_max,
+    #                                  ksize=ksize)
+
+    #     dir_binary = self.dir_threshold(gray, ksize=ksize, thresh=thresh)
+
+    #     # combine all thresholded images
+    #     combined = np.zeros_like(dir_binary)
+
+    #     combined[((gradx == 1) & (grady == 1)) | (
+    #         (mag_binary == 1) & (dir_binary == 1))] = 1
+
+    #     # Return the result
+    #     return combined
+
     def abs_sobel_thresh(self, gray, orient='x', thresh_min=40, thresh_max=200, ksize=5):
         # Apply x or y gradient with the OpenCV Sobel() function
         # and take the absolute value
         if orient == 'x':
-            abs_sobel = np.absolute(
-                cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize))
+            abs_sobel = np.absolute(cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize))
         if orient == 'y':
-            abs_sobel = np.absolute(
-                cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize))
-
+            abs_sobel = np.absolute(cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize))
+        
         # Rescale back to 8 bit integer
         scaled_sobel = np.uint8(255 * abs_sobel / np.max(abs_sobel))
-
+        
         # Create a copy and apply the threshold
         binary_output = np.zeros_like(scaled_sobel)
-
-        binary_output[(scaled_sobel >= thresh_min) &
-                      (scaled_sobel <= thresh_max)] = 1
+        
+        binary_output[(scaled_sobel >= thresh_min) & (scaled_sobel <= thresh_max)] = 1
 
         # Return the result
         return binary_output
-
+    
     def mag_thresh(self, gray, thresh_min=40, thresh_max=250, ksize=7):
         # Take both Sobel x and y gradients
         sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize)
-
+        
         sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize)
-
+        
         # Calculate the gradient magnitude
         gradmag = np.sqrt(sobelx**2 + sobely**2)
-
+        
         # Rescale to 8 bit
-        scale_factor = np.max(gradmag) / 255
-
-        gradmag = (gradmag / scale_factor).astype(np.uint8)
-
+        scale_factor = np.max(gradmag) / 255 
+        
+        gradmag = (gradmag/scale_factor).astype(np.uint8) 
+        
         # Create a binary image of ones where threshold is met, zeros otherwise
         binary_output = np.zeros_like(gradmag)
-
+        
         binary_output[(gradmag >= thresh_min) & (gradmag <= thresh_max)] = 1
 
         # Return the binary image
         return binary_output
-
+    
     def dir_threshold(self, gray, ksize=7, thresh=(0.7, 1.3)):
 
         # Calculate the x and y gradients
         sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize)
-
+        
         sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize)
-
-        # Take the absolute value of the gradient direction,
+        
+        # Take the absolute value of the gradient direction, 
         # apply a threshold, and create a binary image result
         absgraddir = np.arctan2(np.absolute(sobely), np.absolute(sobelx))
-
-        binary_output = np.zeros_like(absgraddir)
-
-        binary_output[(absgraddir >= thresh[0]) &
-                      (absgraddir <= thresh[1])] = 1
+        
+        binary_output =  np.zeros_like(absgraddir)
+        
+        binary_output[(absgraddir >= thresh[0]) & (absgraddir <= thresh[1])] = 1
 
         # Return the binary image
         return binary_output
-
+    
     def gradient_binary(self, gray, thresh_min=40, thresh_max=250, ksize=7, thresh=(0.7, 1.3)):
         # Apply each of the thresholding functions
-        gradx = self.abs_sobel_thresh(gray,
-                                      orient='x',
-                                      thresh_min=thresh_min,
-                                      thresh_max=thresh_max,
-                                      ksize=ksize)
+        gradx = self.abs_sobel_thresh(gray, orient='x', thresh_min=thresh_min, thresh_max=thresh_max, ksize=ksize)
 
-        grady = self.abs_sobel_thresh(gray,
-                                      orient='y',
-                                      thresh_min=thresh_min,
-                                      thresh_max=thresh_max,
-                                      ksize=ksize)
+        grady = self.abs_sobel_thresh(gray, orient='y', thresh_min=thresh_min, thresh_max=thresh_max, ksize=ksize)
 
-        mag_binary = self.mag_thresh(gray,
-                                     thresh_min=thresh_min,
-                                     thresh_max=thresh_max,
-                                     ksize=ksize)
+        mag_binary = self.mag_thresh(gray, thresh_min=thresh_min, thresh_max=thresh_max, ksize=ksize)
 
         dir_binary = self.dir_threshold(gray, ksize=ksize, thresh=thresh)
-
-        # combine all thresholded images
+        
         combined = np.zeros_like(dir_binary)
-
-        combined[((gradx == 1) & (grady == 1)) | (
-            (mag_binary == 1) & (dir_binary == 1))] = 1
-
+        
+        combined[((gradx == 1) & (grady == 1)) | ((mag_binary == 1) & (dir_binary == 1))] = 1
+        
         # Return the result
         return combined
 
-    def s_binary(self, img, thresh=(15, 100)):
-        # Threshold color channel
-        hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
-        H = hls[:,:,0]
-        L = hls[:,:,1]
-        S = hls[:,:,2]
-        # Stack each channel to view their individual contributions in green and blue respectively
-        # This returns a stack of the two binary images, whose components you
-        # can see as different colors
-        binary = np.zeros_like(H)
-        binary[(H > thresh[0]) & (H <= thresh[1])] = 1
-
-        return binary
-
     def binary_transform(self, img, thresh_min=40, thresh_max=250, ksize=7, thresh=(0.7, 1.3), hls_thresh=(175, 255)):
-
-        # gray = self.to_gray(img)
-
-        # Gradient threshold
-        # gradient_binary = self.gradient_binary(
-        #     gray, thresh_min=thresh_min, thresh_max=thresh_max, ksize=ksize, thresh=thresh)
-
-        # S threshold
-        s_binary = self.s_binary(img)
-
+        
+        gray = self.to_gray(img)
+        
+        # Threshold gradient
+        sxbinary = self.gradient_binary(gray)
+    
+        # Threshold color channel
+        s_binary = self.to_hls(img)
+    
+        # Stack each channel to view their individual contributions in green and blue respectively
+         # This returns a stack of the two binary images, whose components you can see as different colors
+        color_binary = np.dstack((np.zeros_like(sxbinary), sxbinary, s_binary))
+    
         # Combine the two binary thresholds
-#         combined_binary = np.zeros_like(gradient_binary)
-#         combined_binary[(s_binary == 1) | (gradient_binary == 1)] = 1
-
+        combined_binary = np.zeros_like(sxbinary)
+        combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
+        
         # Return the result
-        return s_binary
+        return combined_binary
+    
+    def to_hls(self, img, hls_thresh=(50, 200)):
+        hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
+        
+        s_channel = hls[:,:,2]
+        
+        binary_output = np.zeros_like(s_channel)
+        
+        binary_output[(s_channel > hls_thresh[0]) & (s_channel <= hls_thresh[1])] = 1
+        
+        return binary_output
+
+#     def s_binary(self, img, thresh=(15, 100)):
+#         # Threshold color channel
+#         hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+#         H = hls[:,:,0]
+#         L = hls[:,:,1]
+#         S = hls[:,:,2]
+#         # Stack each channel to view their individual contributions in green and blue respectively
+#         # This returns a stack of the two binary images, whose components you
+#         # can see as different colors
+#         binary = np.zeros_like(H)
+#         binary[(H > thresh[0]) & (H <= thresh[1])] = 1
+
+#         return binary
+
+#     def binary_transform(self, img, thresh_min=40, thresh_max=250, ksize=7, thresh=(0.7, 1.3), hls_thresh=(175, 255)):
+
+#         # gray = self.to_gray(img)
+
+#         # Gradient threshold
+#         # gradient_binary = self.gradient_binary(
+#         #     gray, thresh_min=thresh_min, thresh_max=thresh_max, ksize=ksize, thresh=thresh)
+
+#         # S threshold
+#         s_binary = self.s_binary(img)
+
+#         # Combine the two binary thresholds
+# #         combined_binary = np.zeros_like(gradient_binary)
+# #         combined_binary[(s_binary == 1) | (gradient_binary == 1)] = 1
+
+#         # Return the result
+#         return s_binary
 
     def to_hls(self, img, hls_thresh=(50, 200)):
         hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
