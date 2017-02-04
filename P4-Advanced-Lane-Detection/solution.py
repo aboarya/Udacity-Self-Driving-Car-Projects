@@ -454,10 +454,10 @@ class LaneDetection(object):
 
         # Fit new polynomials to x,y in world space
         left_fit_cr = np.polyfit(
-            lefty * self.ym_per_pix, self.left_line.x * xm_per_pix, 2)
+            self.left_line.y * self.ym_per_pix, self.left_line.x * self.xm_per_pix, 2)
 
         right_fit_cr = np.polyfit(
-            righty * self.ym_per_pix, self.right_line.x * xm_per_pix, 2)
+            self.right_line.y * self.ym_per_pix, self.right_line.x * self.xm_per_pix, 2)
 
         # Calculate the new radii of curvature
         self.left_line.radius_of_curvature = ((1 + (2 * left_fit_cr[0] * y_eval * self.ym_per_pix + left_fit_cr[
