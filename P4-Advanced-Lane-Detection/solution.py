@@ -60,6 +60,14 @@ class LaneDetection(object):
         # read first frame to get dimensions
         self.ret, self.first_frame = self.reader.read()
 
+        # Define conversions in x and y from pixels space to meters
+        self.ym_per_pix = 30 / 720  # meters per pixel in y dimension
+
+        self.xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
+
+        # pixel to meter conversion
+        self.pix_to_meter = 0.0002636
+
         # left line data
         self.left_line = Line()
 
@@ -289,6 +297,7 @@ class LaneDetection(object):
 
         # Given src and dst points, calculate the perspective transform matrix
         M = cv2.getPerspectiveTransform(self.src, self.dst)
+
         # Warp the image using OpenCV warpPerspective()
         return cv2.warpPerspective(binary, M, self.img_size)
 
@@ -379,7 +388,11 @@ class LaneDetection(object):
         # Fit a second order polynomial to each
         self.left_line.current_fit = np.polyfit(lefty, leftx, 2)
 
+        self.left_line.detected = True
+
         self.right_line.current_fit = np.polyfit(righty, rightx, 2)
+
+        self.right_line.detected = True
 
         # add points to left/right lines
         self.left_line.allx.append(leftx)
@@ -390,7 +403,7 @@ class LaneDetection(object):
 
         self.right_line.ally.append(righty)
 
-    def detect_lines_first_frame(self, binary_warped):
+    def detect_lines_using_windows(self, binary_warped):
         # Assuming you have created a warped binary image called "binary_warped"
         # Take a histogram of the bottom half of the image
         histogram = np.sum(
@@ -408,47 +421,40 @@ class LaneDetection(object):
 
         rightx_base = np.argmax(histogram[midpoint:]) + midpoint
 
-        self.sliding_windows(binary_warped, out_img)
+        self.left_line.line_base_pos = self.distance_to_center_in_meters(
+            leftx_base, midpoint)
 
-        # This is ONLY for plotting
-        # Generate x and y values for plotting
-#         ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
-#         left_fitx = self.left_line.current_fit[0]*ploty**2 + self.left_line.current_fit[1]*ploty + self.left_line.current_fit[2]
-#         right_fitx = self.right_line.current_fit[0]*ploty**2 + self.right_line.current_fit[1]*ploty + self.right_line.current_fit[2]
+        self.right_line.line_base_pos = self.distance_to_center_in_meters(
+            rightx_base, midpoint)
 
-#         out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
-#         out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
-#         plt.imshow(out_img)
-#         plt.plot(left_fitx, ploty, color='yellow')
-#         plt.plot(right_fitx, ploty, color='yellow')
-#         plt.xlim(0, 1280)
-#         plt.ylim(720, 0)
+        self.sliding_windows(binary_warped, out_img, leftx_base, rightx_base)
 
     def radius_to_meters(self, ploty, leftx, lefty, rightx, righty):
         y_eval = np.max(ploty)
 
-        # Define conversions in x and y from pixels space to meters
-        ym_per_pix = 30 / 720  # meters per pixel in y dimension
-        xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
-
         # Fit new polynomials to x,y in world space
-        left_fit_cr = np.polyfit(lefty * ym_per_pix, leftx * xm_per_pix, 2)
+        left_fit_cr = np.polyfit(
+            lefty * self.ym_per_pix, leftx * xm_per_pix, 2)
 
-        right_fit_cr = np.polyfit(righty * ym_per_pix, rightx * xm_per_pix, 2)
+        right_fit_cr = np.polyfit(
+            righty * self.ym_per_pix, rightx * xm_per_pix, 2)
 
         # Calculate the new radii of curvature
-        left_curverad = ((1 + (2 * left_fit_cr[0] * y_eval * ym_per_pix + left_fit_cr[
-                         1])**2)**1.5) / np.absolute(2 * left_fit_cr[0])
+        self.left_line.radius_of_curvature = ((1 + (2 * left_fit_cr[0] * y_eval * self.ym_per_pix + left_fit_cr[
+            1])**2)**1.5) / np.absolute(2 * left_fit_cr[0])
 
-        right_curverad = ((1 + (2 * right_fit_cr[0] * y_eval * ym_per_pix + right_fit_cr[
-                          1])**2)**1.5) / np.absolute(2 * right_fit_cr[0])
+        self.right_line.radius_of_curvature = ((1 + (2 * right_fit_cr[0] * y_eval * self.ym_per_pix + right_fit_cr[
+            1])**2)**1.5) / np.absolute(2 * right_fit_cr[0])
 
         # Now our radius of curvature is in meters
 #         print(left_curverad*3.28084, 'ft', right_curverad*3.28084, 'ft')
 #         print(left_curverad, 'm', right_curverad, 'm')
 #         Example values: 632.1 m    626.2 m
 
-    def detect_lines(self, binary_warped, orgin):
+    def distance_to_center_in_meters(self, x_base, midpoint):
+        return abs(x_base - midpoint) * self.pix_to_meter
+
+    def detect_lines_from_previous(self, binary_warped, origin):
         # Assume you now have a new warped binary image
         # from the next frame of video (also called "binary_warped")
         # It's now much easier to find line pixels!
@@ -481,15 +487,18 @@ class LaneDetection(object):
         self.left_line.current_fit = np.polyfit(lefty, leftx, 2)
         self.right_line.current_fit = np.polyfit(righty, rightx, 2)
 
+    def project_lane(self):
         # Generate x and y values for plotting
         ploty = np.linspace(0, binary_warped.shape[
                             0] - 1, binary_warped.shape[0])
-        left_fitx = self.left_line.current_fit[0] * ploty**2 + \
-            self.left_line.current_fit[1] * \
-            ploty + self.left_line.current_fit[2]
-        right_fitx = self.right_line.current_fit[0] * ploty**2 + \
-            self.right_line.current_fit[1] * \
-            ploty + self.right_line.current_fit[2]
+
+        left_fitx = self.left_line.current_fit[0] \
+            * ploty**2 + self.left_line.current_fit[1] \
+            * ploty + self.left_line.current_fit[2]
+
+        right_fitx = self.right_line.current_fit[0] \
+            * ploty**2 + self.right_line.current_fit[1] \
+            * ploty + self.right_line.current_fit[2]
 
         # Create an image to draw on and an image to show the selection window
         out_img = np.dstack(
@@ -517,16 +526,6 @@ class LaneDetection(object):
             [np.flipud(np.transpose(np.vstack([right_fitx + margin, ploty])))])
         right_line_pts = np.hstack((right_line_window1, right_line_window2))
 
-        # Draw the lane onto the warped blank image
-#         cv2.fillPoly(window_img, np.int_([left_line_pts]), (0,255, 0))
-#         cv2.fillPoly(window_img, np.int_([right_line_pts]), (0,255, 0))
-#         result = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
-#         plt.imshow(result)
-#         plt.plot(left_fitx, ploty, color='yellow')
-#         plt.plot(right_fitx, ploty, color='yellow')
-#         plt.xlim(0, 1280)
-#         plt.ylim(720, 0)
-
         # Create an image to draw the lines on
         warp_zero = np.zeros_like(binary_warped).astype(np.uint8)
         color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
@@ -547,31 +546,27 @@ class LaneDetection(object):
         newwarp = cv2.warpPerspective(color_warp, Minv, self.img_size)
         # Combine the result with the original image
         result = cv2.addWeighted(orgin, 1, newwarp, 0.3, 0)
-        plt.imshow(self.to_rgb(result))
+        # plt.imshow(self.to_rgb(result))
+
         cv2.imwrite(
             './output_images/lanes_detected{}.jpg'.format(self.count), result)
-#         cv2.imshow('frame',result)
+
         self.writer.write(result)
         return result
 
     def process_image(self, img):
-        if self.count == 0:
-            self.count += 1
-            binary = ld.binary_transform(ld.undistort(
-                img), thresh_min=40, thresh_max=200, ksize=3, thresh=(0.7, 1.3), hls_thresh=(175, 255))
-
-            binary_warped = ld.perspective_transform(binary)
-
-            return self.detect_lines_first_frame(binary_warped)
+        self.count += 1
 
         binary = ld.binary_transform(ld.undistort(
             img), thresh_min=40, thresh_max=200, ksize=3, thresh=(0.7, 1.3), hls_thresh=(175, 255))
 
         binary_warped = ld.perspective_transform(binary)
 
-        self.count += 1
+        if self.left_line.detected and self.right_line.detected:
+            return self.detect_lines_from_previous(binary_warped)
 
-        return self.detect_lines(binary_warped, img)
+        return self.detect_lines_using_windows(binary_warped)
+
 
 if __name__ == '__main__':
     # load calibration images
