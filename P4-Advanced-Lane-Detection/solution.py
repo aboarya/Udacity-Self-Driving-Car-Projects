@@ -447,7 +447,7 @@ class LaneDetection(object):
 
         self.sanity_check()
 
-        self.project_lane(binary_warped, orig, nonzeroy, nonzerox)
+        return self.project_lane(binary_warped, orig, nonzeroy, nonzerox)
 
     def radius_to_meters(self):
         y_eval = np.max(self.ploty)
@@ -501,7 +501,7 @@ class LaneDetection(object):
 
         self.sanity_check()
 
-        self.project_lane(binary_warped, orig, nonzeroy, nonzerox)
+        return self.project_lane(binary_warped, orig, nonzeroy, nonzerox)
         
 
     def sanity_check(self):
