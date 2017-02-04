@@ -18,7 +18,7 @@ class Line(object):
         self.bestx = None
 
         # store all polynomials to use in best_fit
-        self.ployfits = []
+        self.polyfits = []
 
         # polynomial coefficients averaged over the last n iterations
         self.best_fit = None
@@ -348,9 +348,9 @@ class LaneDetection(object):
                 nonzerox >= win_xright_low) & (nonzerox < win_xright_high)).nonzero()[0]
 
             # Append these indices to the lists
-            self.left_lane.inds.append(good_left_inds)
+            self.left_line.inds.append(good_left_inds)
 
-            self.right_lane.inds.append(good_right_inds)
+            self.right_line.inds.append(good_right_inds)
 
             # If you found > minpix pixels, recenter next window on their mean
             # position
@@ -374,26 +374,26 @@ class LaneDetection(object):
         rightx_current = rightx_base
 
         # Create empty lists to receive left and right lane pixel indices
-        self.left_lane.inds = []
-        self.right_lane.inds = []
+        self.left_line.inds = []
+        self.right_line.inds = []
 
         # Step through the windows one by one
         for window in range(self.nwindows):
             slide(window)
 
         # Concatenate the arrays of indices
-        self.left_lane.inds = np.concatenate(self.left_lane.inds)
+        self.left_line.inds = np.concatenate(self.left_line.inds)
 
-        self.right_lane.inds = np.concatenate(self.right_lane.inds)
+        self.right_line.inds = np.concatenate(self.right_line.inds)
 
         # Extract left and right line pixel positions
-        leftx = nonzerox[self.left_lane.inds]
+        leftx = nonzerox[self.left_line.inds]
 
-        lefty = nonzeroy[self.left_lane.inds]
+        lefty = nonzeroy[self.left_line.inds]
 
-        rightx = nonzerox[self.right_lane.inds]
+        rightx = nonzerox[self.right_line.inds]
 
-        righty = nonzeroy[self.right_lane.inds]
+        righty = nonzeroy[self.right_line.inds]
 
         # Fit a second order polynomial to each
         self.left_line.current_fit = np.polyfit(lefty, leftx, 2)
@@ -409,7 +409,7 @@ class LaneDetection(object):
 
         self.right_line.average_fit()
 
-        return nonzeroy
+        return nonzeroy, nonzerox
 
     def detect_lines_using_windows(self, binary_warped):
         # Assuming you have created a warped binary image called "binary_warped"
@@ -435,9 +435,9 @@ class LaneDetection(object):
         self.right_line.line_base_pos = self.distance_to_center_in_meters(
             rightx_base, midpoint)
 
-        nonzeroy = self.sliding_windows(binary_warped, out_img, leftx_base, rightx_base)
+        nonzeroy, nonzerox = self.sliding_windows(binary_warped, out_img, leftx_base, rightx_base)
 
-        self.project_lane(binary_warped, nonzeroy)
+        self.project_lane(binary_warped, nonzeroy, nonzerox)
 
         self.sanity_check()
 
@@ -474,7 +474,7 @@ class LaneDetection(object):
         nonzeroy = np.array(nonzero[0])
         nonzerox = np.array(nonzero[1])
 
-        self.left_lane.inds = ((nonzerox >
+        self.left_line.inds = ((nonzerox >
                            (self.left_line.current_fit[0] * (nonzeroy**2)
                             + self.left_line.current_fit[1] * nonzeroy
                             + self.left_line.current_fit[2] - self.margin))
@@ -482,7 +482,7 @@ class LaneDetection(object):
                                          + self.left_line.current_fit[1] * nonzeroy
                                          + self.left_line.current_fit[2] + self.margin)))
 
-        self.right_lane.inds = ((nonzerox > (self.right_line.current_fit[0] * (nonzeroy**2)
+        self.right_line.inds = ((nonzerox > (self.right_line.current_fit[0] * (nonzeroy**2)
                                         + self.right_line.current_fit[1] * nonzeroy
                                         + self.right_line.current_fit[2] - self.margin))
                            & (nonzerox < (self.right_line.current_fit[0] * (nonzeroy**2)
@@ -490,13 +490,13 @@ class LaneDetection(object):
                                           + self.right_line.current_fit[2] + self.margin)))
 
         # Again, extract left and right line pixel positions
-        leftx = nonzerox[self.left_lane.inds]
+        leftx = nonzerox[self.left_line.inds]
         
-        lefty = nonzeroy[self.left_lane.inds]
+        lefty = nonzeroy[self.left_line.inds]
         
-        rightx = nonzerox[self.right_lane.inds]
+        rightx = nonzerox[self.right_line.inds]
         
-        righty = nonzeroy[self.right_lane.inds]
+        righty = nonzeroy[self.right_line.inds]
         
         # Fit a second order polynomial to each
         self.left_line.current_fit = np.polyfit(lefty, leftx, 2)
@@ -514,7 +514,7 @@ class LaneDetection(object):
 
         self.sanity_check()
 
-        self.project_lane(binary_warped)
+        self.project_lane(binary_warped, nonzeroy, nonzerox)
         
 
     def sanity_check(self):
@@ -544,10 +544,10 @@ class LaneDetection(object):
         window_img = np.zeros_like(out_img)
 
         # Color in left and right line pixels
-        out_img[nonzeroy[self.left_lane.inds], nonzerox[
-            self.left_lane.inds]] = [255, 0, 0]
-        out_img[nonzeroy[self.right_lane.inds], nonzerox[
-            self.right_lane.inds]] = [0, 0, 255]
+        out_img[nonzeroy[self.left_line.inds], nonzerox[
+            self.left_line.inds]] = [255, 0, 0]
+        out_img[nonzeroy[self.right_line.inds], nonzerox[
+            self.right_line.inds]] = [0, 0, 255]
 
         # Generate a polygon to illustrate the search window area
         # And recast the x and y points into usable format for cv2.fillPoly()
