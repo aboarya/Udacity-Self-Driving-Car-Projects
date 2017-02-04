@@ -17,6 +17,9 @@ class Line(object):
         # average x values of the fitted line over the last n iterations
         self.bestx = None
 
+        # store all polynomials to use in best_fit
+        self.ployfits = []
+
         # polynomial coefficients averaged over the last n iterations
         self.best_fit = None
 
@@ -38,6 +41,12 @@ class Line(object):
         # y values for detected line pixels
         self.ally = []
 
+        # indices of the lane segment
+        self.inds = []
+
+    def average_fit(self):
+        self.best_fit = np.mean(self.polyfits, axis=0)
+
 
 class LaneDetection(object):
 
@@ -47,6 +56,12 @@ class LaneDetection(object):
 
         # the number of sliding windows
         self.nwindows = 9
+
+        # Set the width of the windows +/- self.margin
+        self.margin = 100
+
+        # Set minimum number of pixels found to recenter window
+        self.minpix = 50
 
         # calibration image
         self.cal_images = cal_images
@@ -250,11 +265,11 @@ class LaneDetection(object):
         s_binary = self.s_binary(img, gradient_binary)
 
         # Combine the two binary thresholds
-        combined_binary = np.zeros_like(gradient_binary)
-        combined_binary[(s_binary == 1) | (gradient_binary == 1)] = 1
+#         combined_binary = np.zeros_like(gradient_binary)
+#         combined_binary[(s_binary == 1) | (gradient_binary == 1)] = 1
 
         # Return the result
-        return combined_binary
+        return gradient_binary
 
     def to_hls(self, img, hls_thresh=(50, 200)):
         hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
@@ -301,7 +316,7 @@ class LaneDetection(object):
         # Warp the image using OpenCV warpPerspective()
         return cv2.warpPerspective(binary, M, self.img_size)
 
-    def sliding_windows(self, binary_warped, out_img):
+    def sliding_windows(self, binary_warped, out_img, leftx_base, rightx_base):
         #
         def slide(window):
             # Identify window boundaries in x and y (and right and left)
@@ -310,13 +325,13 @@ class LaneDetection(object):
 
             win_y_high = binary_warped.shape[0] - window * self.window_height
 
-            win_xleft_low = leftx_current - margin
+            win_xleft_low = leftx_base - self.margin
 
-            win_xleft_high = leftx_current + margin
+            win_xleft_high = leftx_base + self.margin
 
-            win_xright_low = rightx_current - margin
+            win_xright_low = rightx_base - self.margin
 
-            win_xright_high = rightx_current + margin
+            win_xright_high = rightx_base + self.margin
 
             # Draw the windows on the visualization image
             cv2.rectangle(out_img, (win_xleft_low, win_y_low),
@@ -333,16 +348,16 @@ class LaneDetection(object):
                 nonzerox >= win_xright_low) & (nonzerox < win_xright_high)).nonzero()[0]
 
             # Append these indices to the lists
-            left_lane_inds.append(good_left_inds)
+            self.left_lane.inds.append(good_left_inds)
 
-            right_lane_inds.append(good_right_inds)
+            self.right_lane.inds.append(good_right_inds)
 
             # If you found > minpix pixels, recenter next window on their mean
             # position
-            if len(good_left_inds) > minpix:
+            if len(good_left_inds) > self.minpix:
                 leftx_current = np.int(np.mean(nonzerox[good_left_inds]))
 
-            if len(good_right_inds) > minpix:
+            if len(good_right_inds) > self.minpix:
                 rightx_current = np.int(np.mean(nonzerox[good_right_inds]))
 
         # Set height of windows
@@ -355,53 +370,46 @@ class LaneDetection(object):
 
         # Current positions to be updated for each window
         leftx_current = leftx_base
+        
         rightx_current = rightx_base
 
-        # Set the width of the windows +/- margin
-        margin = 100
-
-        # Set minimum number of pixels found to recenter window
-        minpix = 50
-
         # Create empty lists to receive left and right lane pixel indices
-        left_lane_inds = []
-        right_lane_inds = []
+        self.left_lane.inds = []
+        self.right_lane.inds = []
 
         # Step through the windows one by one
         for window in range(self.nwindows):
-            slide(window, leftx_current, rightx_current)
+            slide(window)
 
         # Concatenate the arrays of indices
-        left_lane_inds = np.concatenate(left_lane_inds)
+        self.left_lane.inds = np.concatenate(self.left_lane.inds)
 
-        right_lane_inds = np.concatenate(right_lane_inds)
+        self.right_lane.inds = np.concatenate(self.right_lane.inds)
 
         # Extract left and right line pixel positions
-        leftx = nonzerox[left_lane_inds]
+        leftx = nonzerox[self.left_lane.inds]
 
-        lefty = nonzeroy[left_lane_inds]
+        lefty = nonzeroy[self.left_lane.inds]
 
-        rightx = nonzerox[right_lane_inds]
+        rightx = nonzerox[self.right_lane.inds]
 
-        righty = nonzeroy[right_lane_inds]
+        righty = nonzeroy[self.right_lane.inds]
 
         # Fit a second order polynomial to each
         self.left_line.current_fit = np.polyfit(lefty, leftx, 2)
 
-        self.left_line.detected = True
+        self.left_line.polyfits.append(self.left_line.current_fit)
 
+        # append polynomia for use in average
         self.right_line.current_fit = np.polyfit(righty, rightx, 2)
 
-        self.right_line.detected = True
+        self.right_line.polyfits.append(self.right_line.current_fit)
 
-        # add points to left/right lines
-        self.left_line.allx.append(leftx)
+        self.left_line.average_fit()
 
-        self.left_line.ally.append(lefty)
+        self.right_line.average_fit()
 
-        self.right_line.allx.append(rightx)
-
-        self.right_line.ally.append(righty)
+        return nonzeroy
 
     def detect_lines_using_windows(self, binary_warped):
         # Assuming you have created a warped binary image called "binary_warped"
@@ -427,7 +435,11 @@ class LaneDetection(object):
         self.right_line.line_base_pos = self.distance_to_center_in_meters(
             rightx_base, midpoint)
 
-        self.sliding_windows(binary_warped, out_img, leftx_base, rightx_base)
+        nonzeroy = self.sliding_windows(binary_warped, out_img, leftx_base, rightx_base)
+
+        self.project_lane(binary_warped, nonzeroy)
+
+        self.sanity_check()
 
     def radius_to_meters(self, ploty, leftx, lefty, rightx, righty):
         y_eval = np.max(ploty)
@@ -461,33 +473,58 @@ class LaneDetection(object):
         nonzero = binary_warped.nonzero()
         nonzeroy = np.array(nonzero[0])
         nonzerox = np.array(nonzero[1])
-        margin = 100
 
-        left_lane_inds = ((nonzerox >
+        self.left_lane.inds = ((nonzerox >
                            (self.left_line.current_fit[0] * (nonzeroy**2)
                             + self.left_line.current_fit[1] * nonzeroy
-                            + self.left_line.current_fit[2] - margin))
+                            + self.left_line.current_fit[2] - self.margin))
                           & (nonzerox < (self.left_line.current_fit[0] * (nonzeroy**2)
                                          + self.left_line.current_fit[1] * nonzeroy
-                                         + self.left_line.current_fit[2] + margin)))
+                                         + self.left_line.current_fit[2] + self.margin)))
 
-        right_lane_inds = ((nonzerox > (self.right_line.current_fit[0] * (nonzeroy**2)
+        self.right_lane.inds = ((nonzerox > (self.right_line.current_fit[0] * (nonzeroy**2)
                                         + self.right_line.current_fit[1] * nonzeroy
-                                        + self.right_line.current_fit[2] - margin))
+                                        + self.right_line.current_fit[2] - self.margin))
                            & (nonzerox < (self.right_line.current_fit[0] * (nonzeroy**2)
                                           + self.right_line.current_fit[1] * nonzeroy
-                                          + self.right_line.current_fit[2] + margin)))
+                                          + self.right_line.current_fit[2] + self.margin)))
 
         # Again, extract left and right line pixel positions
-        leftx = nonzerox[left_lane_inds]
-        lefty = nonzeroy[left_lane_inds]
-        rightx = nonzerox[right_lane_inds]
-        righty = nonzeroy[right_lane_inds]
+        leftx = nonzerox[self.left_lane.inds]
+        
+        lefty = nonzeroy[self.left_lane.inds]
+        
+        rightx = nonzerox[self.right_lane.inds]
+        
+        righty = nonzeroy[self.right_lane.inds]
+        
         # Fit a second order polynomial to each
         self.left_line.current_fit = np.polyfit(lefty, leftx, 2)
+        
         self.right_line.current_fit = np.polyfit(righty, rightx, 2)
 
-    def project_lane(self):
+        # append polynomia for use in average
+        self.right_line.current_fit = np.polyfit(righty, rightx, 2)
+
+        self.right_line.polyfits.append(self.right_line.current_fit)
+
+        self.left_line.average_fit()
+
+        self.right_line.average_fit()
+
+        self.sanity_check()
+
+        self.project_lane(binary_warped)
+        
+
+    def sanity_check(self):
+        # check that lines are roughly parrellel
+
+        if abs(self.left_line.radius_of_curvature - self.right_line.radius_of_curvature) > 300:
+            pass
+
+
+    def project_lane(self, binary_warped, nonzeroy):
         # Generate x and y values for plotting
         ploty = np.linspace(0, binary_warped.shape[
                             0] - 1, binary_warped.shape[0])
@@ -507,23 +544,23 @@ class LaneDetection(object):
         window_img = np.zeros_like(out_img)
 
         # Color in left and right line pixels
-        out_img[nonzeroy[left_lane_inds], nonzerox[
-            left_lane_inds]] = [255, 0, 0]
-        out_img[nonzeroy[right_lane_inds], nonzerox[
-            right_lane_inds]] = [0, 0, 255]
+        out_img[nonzeroy[self.left_lane.inds], nonzerox[
+            self.left_lane.inds]] = [255, 0, 0]
+        out_img[nonzeroy[self.right_lane.inds], nonzerox[
+            self.right_lane.inds]] = [0, 0, 255]
 
         # Generate a polygon to illustrate the search window area
         # And recast the x and y points into usable format for cv2.fillPoly()
         left_line_window1 = np.array(
-            [np.transpose(np.vstack([left_fitx - margin, ploty]))])
+            [np.transpose(np.vstack([left_fitx - self.margin, ploty]))])
         left_line_window2 = np.array(
-            [np.flipud(np.transpose(np.vstack([left_fitx + margin, ploty])))])
+            [np.flipud(np.transpose(np.vstack([left_fitx + self.margin, ploty])))])
         left_line_pts = np.hstack((left_line_window1, left_line_window2))
 
         right_line_window1 = np.array(
-            [np.transpose(np.vstack([right_fitx - margin, ploty]))])
+            [np.transpose(np.vstack([right_fitx - self.margin, ploty]))])
         right_line_window2 = np.array(
-            [np.flipud(np.transpose(np.vstack([right_fitx + margin, ploty])))])
+            [np.flipud(np.transpose(np.vstack([right_fitx + self.margin, ploty])))])
         right_line_pts = np.hstack((right_line_window1, right_line_window2))
 
         # Create an image to draw the lines on
@@ -551,7 +588,7 @@ class LaneDetection(object):
         cv2.imwrite(
             './output_images/lanes_detected{}.jpg'.format(self.count), result)
 
-        self.writer.write(result)
+        # self.writer.write(result)
         return result
 
     def process_image(self, img):
@@ -568,13 +605,4 @@ class LaneDetection(object):
         return self.detect_lines_using_windows(binary_warped)
 
 
-if __name__ == '__main__':
-    # load calibration images
-    images = glob.glob('camera_cal/calibration*.jpg')
 
-    # use one image as calibration
-    test_image = images.pop(-1)
-
-    # create instance of LaneDetection class
-    ld = LaneDetection(images, test_image,
-                       'project_video.mp4', 'output_video.mp4')
