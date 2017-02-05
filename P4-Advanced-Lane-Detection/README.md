@@ -79,14 +79,11 @@ if self.left_line.detected and self.right_line.detected:
 return self.detect_lines_using_windows(binary_warped, img)
 ```
 
-This workflow is applied to an image such as below and described in further detail.
-
-![alt text][image2]
 
 ####Undistort Image
 I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
 
-![alt text][image3]
+![alt text][image2]
 
 ####Binary Threshold Image
 
@@ -105,6 +102,10 @@ The `gradient thresholding` is done in 4 steps:
 * Thresholing of magnitude
 * Thresholding over direction
 * Combining the above
+
+The outpu of the above can be seen in this image:
+
+![alt text][image3]
 
 ####Perspective Transform
 
