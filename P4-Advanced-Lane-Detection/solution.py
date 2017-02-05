@@ -488,17 +488,9 @@ class LaneDetection(object):
 
             self.right_line.detected = False
 
-            print(self.bad_count, 'on frame', self.count,
-                  ' .... ', 'reverting to windows')
-
             self.detect_lines_using_windows(binary_warped, orig)
 
         if prev and not center:
-            print('bad count', self.bad_count, 'on frame', self.count)
-            print(abs(self.left_line.radius_of_curvature -
-                      self.right_line.radius_of_curvature))
-            print((self.left_line.line_base_pos +
-                   self.right_line.line_base_pos), self.midpoint)
             self.bad_count += 1
 
             self.left_line.current_fit = self.left_line.polyfits[

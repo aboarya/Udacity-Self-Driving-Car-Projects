@@ -109,7 +109,7 @@ The outpu of the above can be seen in this image:
 
 ####Perspective Transform
 
-The code for my perspective transform includes a function called `perspective_transform` method of the __LaneDetection__, I chose the hardcode the source and destination points in the following manner:
+The code for my perspective transform includes a function called `perspective_transform` in the __LaneDetection__, I chose the hardcode the source and destination points in the following manner:
 
 ```
 src = np.float32(
@@ -137,9 +137,30 @@ The output of which can be seen below
 
 ![alt text][image4]
 
-####4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
+####Lane Detection
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+Once a threasholded image has been warped, the curvatur of the lanes can easily be detected.
+
+The first step in this process is applying a histogram to the bottom half of the warped binary image.
+
+Since the binary image is simply zeros and ones, the location of the lanes in a historgam is clearly identifiable by the peaks of the histogram; the lanes are the `ones` in this case.
+
+Using only the bottom half of the image provides us with a place to begin the search for the entire lane.  We can use a small window from the bottom of the peak of the histogram to begin the search.
+
+The search within the window is similar to the idea of the histogram approach; a concentration of `ones` are the lane and `zeors` are everything else that was removed by our binary thresholding 
+
+A small size for the window is best.  I choose 9 windows of 100 pixels.  The indices of the detected `ones` are added to a list, and the windows `slides` up towards the top of the image.
+
+We can safely assume the camera is in the center of the car, therefore the right half of the binary image is where the right lane would be and the left one accordingly.
+
+Once we have a group of indices seperated by location; left and right, we can use the __cv2__ API to create a second order polynomial to represent the curvature of the lane.
+
+This gives us a set of coefficeints similar to `aX**2 + bX + c`.  We can use these coefficients to calculte the radius of the curvature of the lane for one of several reasons:
+
+* Sanity check to ensure we detected a proper lane segment
+* Storing curvature to sanity check against future sections of the road where light conditions may not be idea for thresholding.
+
+The above workflow is contained in the `detect_lines_using_windows` method of the __LaneDetection__ class and an example of its output is below
 
 ![alt text][image5]
 
