@@ -40,8 +40,6 @@ Exporting the video is done using `moviepy`'s ___VideoFileClip___ API, which pro
 
 ## Camera Calibration
 
-####1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
-
 The constructor of the ___LaneDetection___ class accepts a set of calibration images as well as a test image on which to test the calibration.
 
 The constructor calls the `calibrate_camera` method, which creates one set of *object points* and one set of *images points* for each of the calibration images; which are images of a chessboard from different perspectives.  
