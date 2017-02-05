@@ -14,17 +14,18 @@ The goals / steps of this project are the following:
 [//]: # (Image References)
 
 [image1]: ./output_images/undisorted_frame0.jpg "Undistorted"
-[image2]: ./output_images/binary_example_frame0.jpg "Binary Example"
-[image3]: ./output_images/warp_example_frame0.jpg "Warp Example"
-[image4]: ./output_images/fit_visual_frame0.jpg "Fit Visual"
-[image5]: ./output_images/result_frame0.jpg "Output"
-[video6]: ./output_video.mp4 "Video"
+[image1]: ./output_images/undisorted_road_frame0.jpg "Road Transformed"
+[image3]: ./output_images/binary_example_frame0.jpg "Binary Example"
+[image4]: ./output_images/warp_example_frame0.jpg "Warp Example"
+[image5]: ./output_images/fit_visual_frame0.jpg "Fit Visual"
+[image6]: ./output_images/result_frame0.jpg "Output"
+[video7]: ./output_video.mp4 "Video"
 
 # Overview
 
 * [Introduction](#introduction)
 * [Camera Calibration](#camera-calibration)
-* [Model Diagram](#model-diagram)
+* [Pipeline](#pipeline)
 * [Network Architecture](#network-architecture)
 * [Augmenation And Recovery](#augmenation-and-recovery)
 * [Dataset](#dataset)
@@ -50,18 +51,44 @@ The constructor of the ___LaneDetection___ class accepts a set of calibration im
 
 The constructor calls the `calibrate_camera` method, which creates one set of *object points* and one set of *images points* for each of the calibration images; which are images of a chessboard from different perspectives.  
 
-The *image points* are the corners of the black and white squares of the chessboard which are dicoverable via ___cv2__'s API, while the *object points* are the coordinates of these squares within the image in `(x , y, z)`.
+The *image points* are the corners of the black and white squares of the chessboard which are dicoverable via __cv2__'s API, while the *object points* are the coordinates of these squares within the image in `(x , y, z)`.
 
+The image and object points create an `undistortion` matrix which is applied to the below image.
 
 
 ![alt text][image1]
 
-###Pipeline (single images)
+## Pipeline (single images)
 
-####1. Provide an example of a distortion-corrected image.
+The pipeline for this project can best be summed up as follows:
+
+* Undistort Image
+* Binary Transorm Image
+* Perspective Transform Image
+* Detect lane lines using sliding windows and mark as detected
+* Project lane onto input image
+
+This pipeline is found in the code in the `process_image` method as follows:
+
+
+```
+binary = ld.binary_transform(ld.undistort(
+            img), thresh_min=40, thresh_max=200, ksize=3, thresh=(0.7, 1.3), hls_thresh=(175, 255))
+
+binary_warped = ld.perspective_transform(binary)
+
+# Generate x and y values for plotting
+self.ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
+
+if self.left_line.detected and self.right_line.detected:
+    return self.detect_lines_from_previous(binary_warped, img)
+
+return self.detect_lines_using_windows(binary_warped, img)
+```
 To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
 ![alt text][image2]
-####2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
+
+####
 I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
 
 ![alt text][image3]
