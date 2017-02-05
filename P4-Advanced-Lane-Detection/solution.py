@@ -561,11 +561,15 @@ class LaneDetection(object):
 
         # cv2.imwrite(
         #     './output_images/lanes_detected{}.jpg'.format(self.count), result)
-        txt = "Left curvature {}".format(self.left_line.radius_of_curvature)
+        txt = "Left curvature {:.3f} m".format(self.left_line.radius_of_curvature)
 
         cv2.putText(result, txt, (75, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
-        txt = "Right curvature {}".format(self.right_line.radius_of_curvature)
+        txt = "center {:.3f} m".format(self.midpoint*self.pix_to_meter)
+
+        cv2.putText(result, txt, (75, 135), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+        txt = "Right curvature {:.3f} m".format(self.right_line.radius_of_curvature)
 
         cv2.putText(result, txt, (75, 160), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
