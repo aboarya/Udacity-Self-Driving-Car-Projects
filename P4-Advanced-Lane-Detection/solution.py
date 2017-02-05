@@ -255,18 +255,6 @@ class LaneDetection(object):
 
         return binary_output
 
-    def to_hls(self, img, hls_thresh=(50, 200)):
-        hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
-
-        s_channel = hls[:, :, 2]
-
-        binary_output = np.zeros_like(s_channel)
-
-        binary_output[(s_channel > hls_thresh[0]) &
-                      (s_channel <= hls_thresh[1])] = 1
-
-        return binary_output
-
     def perspective_transform(self, binary):
         self.img_size = (binary.shape[1], binary.shape[0])
 

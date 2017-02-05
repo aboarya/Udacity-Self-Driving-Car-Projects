@@ -26,11 +26,6 @@ The goals / steps of this project are the following:
 * [Introduction](#introduction)
 * [Camera Calibration](#camera-calibration)
 * [Pipeline](#pipeline)
-* [Network Architecture](#network-architecture)
-* [Augmenation And Recovery](#augmenation-and-recovery)
-* [Dataset](#dataset)
-* [Training](#training)
-* [Prediction](#prediction)
 
 ## Introduction
 
@@ -63,7 +58,7 @@ The image and object points create an `undistortion` matrix which is applied to 
 The pipeline for this project can best be summed up as follows:
 
 * Undistort Image
-* Binary Transorm Image
+* Binary Threshold Image
 * Perspective Transform Image
 * Detect lane lines using sliding windows and mark as detected
 * Project lane onto input image
@@ -88,14 +83,32 @@ return self.detect_lines_using_windows(binary_warped, img)
 To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
 ![alt text][image2]
 
-####
+####Undistort Image
 I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
 
 ![alt text][image3]
 
-####3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
+####Binary Threshold Image
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
+Binay thresholding is done in the `binary_transform` method of the __LaneDetection__ class and is done in sequence of the following
+
+* Gradient Thresholding
+* Color Thresholding
+* Combined Gradient and Color
+
+Each of the thresholding steps is done in their respective methods which are called within the `binary_transform` method.
+
+The `gradient thresholding` is done in 4 steps:
+
+* Thresholding over the X axis
+* Thresholding over the Y axis
+* Thresholing of magnitude
+* Thresholding over direction
+* Combining the above
+
+####Perspective Transform
+
+The code for my perspective transform includes a function called `perspective_transform` method of the __LaneDetection__, I chose the hardcode the source and destination points in the following manner:
 
 ```
 src = np.float32(
@@ -119,7 +132,7 @@ This resulted in the following source and destination points:
 | 1127, 720     | 960, 720      |
 | 695, 460      | 960, 0        |
 
-I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
+The output of which can be seen below
 
 ![alt text][image4]
 
