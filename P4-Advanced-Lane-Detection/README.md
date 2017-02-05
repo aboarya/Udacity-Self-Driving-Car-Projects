@@ -1,8 +1,3 @@
-##Writeup Template
-###You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
-
----
-
 **Advanced Lane Finding Project**
 
 The goals / steps of this project are the following:
@@ -25,16 +20,27 @@ The goals / steps of this project are the following:
 [image5]: ./output_images/result_frame0.jpg "Output"
 [video6]: ./output_video.mp4 "Video"
 
-## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
-###Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
+* [Introduction](#introduction)
+* [Camera Calibration](#camera-calibration)
+* [Model Diagram](#model-diagram)
+* [Network Architecture](#network-architecture)
+* [Augmenation And Recovery](#augmenation-and-recovery)
+* [Dataset](#dataset)
+* [Training](#training)
+* [Prediction](#prediction)
 
----
-###Writeup / README
+## Introduction
 
-####1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
+The code for this project is structured in this `solution.py` in this directory.  
 
-You're reading it!
-###Camera Calibration
+The solution consists of two classes.  The ___LaneDetection___, and the ___Line___ class.
+
+The ___Line___ class is simply a data class while the ___LaneDetection___ class contains the workflow required for this project.
+
+Exporting the video is done using `moviepy`'s ___VideoFileClip___ API, which processes a video one frame at a time.  The ___LaneDetection__'s `process_image` method is give to the API to create `output_video.mp4`.
+
+
+## Camera Calibration
 
 ####1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
