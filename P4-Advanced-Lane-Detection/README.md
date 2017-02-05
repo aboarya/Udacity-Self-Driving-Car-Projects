@@ -158,19 +158,27 @@ Once we have a group of indices seperated by location; left and right, we can us
 This gives us a set of coefficeints similar to `aX**2 + bX + c`.  We can use these coefficients to calculte the radius of the curvature of the lane for one of several reasons:
 
 * Sanity check to ensure we detected a proper lane segment
-* Storing curvature to sanity check against future sections of the road where light conditions may not be idea for thresholding.
+* Storing curvature to sanity check against future sections of the road where light conditions may not be ideal for thresholding.
 
 The above workflow is contained in the `detect_lines_using_windows` method of the __LaneDetection__ class and an example of its output is below
 
 ![alt text][image5]
 
-####5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+#### Radius Calculation
 
-I did this in lines # through # in my code in `my_other_file.py`
+Radius calculation; in order to be useful for sanity check, must be converted to meters.
 
-####6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
+There's an excellent tutorial and sample code in the lesson on how to do this.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+Mostly importantly is convertion from pixel space to real world (meter space).
+
+This was done in the `radius_to_meters` of the __LaneDetection__ class by reapplying the ploynimials with a conversion to `real world` space.  
+
+Once that is done, the `aX**2 + bX + c` formula is reapplied to calculate the curvature in meters.
+
+#### Example Ouput
+
+The above workflow is contained in the `process_image` method and an ouput image is seen below.
 
 ![alt text][image6]
 
@@ -178,15 +186,21 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 ###Pipeline (video)
 
-####1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+
+A complete video example [link to my video result](./output_video.mp4)
 
 ---
 
 ###Discussion
 
-####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+Although this piple works reasonably well on the project video, it is likely to fail under challenging road segments.
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+This is mainly caused by the fact that binary thresholding under poor light conditions, shade, abd bad weather conditions is likely to produce multiple faint histograms that make the lane detection difficult.
+
+As mentioned, the radius can be used for sanity check and a better algorithm can be used such that the if detection doesn't make sense, the previous frame can used instead since the road is likely to be continous.
+
+This can be done up to a certain count of frames before resuming the detection once again.
+
+
 
