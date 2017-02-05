@@ -82,7 +82,7 @@ return self.detect_lines_using_windows(binary_warped, img)
 
 ####Undistort Image
 
-The above is applied to each frame and an example is seen below.
+The `undistortion` is applied to each frame and an example is seen below.
 
 ![alt text][image2]
 
