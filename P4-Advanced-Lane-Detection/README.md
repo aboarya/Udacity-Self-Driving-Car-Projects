@@ -146,7 +146,7 @@ The first step in this process is applying a histogram to the bottom half of the
 
 Since the binary image is simply zeros and ones, the location of the lanes in a historgam is clearly identifiable by the peaks of the histogram.  
 
-The histogram represents all the `1`'s in the imae and the lane are a peak within that representation.
+The histogram represents all the `1`'s in the binary image and the lane are a peak within that representation.
 
 Using only the bottom half of the image provides us with a place to begin the search for the entire lane.  
 
