@@ -104,7 +104,7 @@ The `gradient thresholding` is done in 4 steps:
 * Thresholding over direction
 * Combining the above
 
-The outpu of the above can be seen in this image:
+The output of the above can be seen in this image:
 
 ![alt text][image3]
 
