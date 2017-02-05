@@ -37,7 +37,7 @@ The solution consists of two classes.  The ___LaneDetection___, and the ___Line_
 
 The ___Line___ class is simply a data class while the ___LaneDetection___ class contains the workflow required for this project.
 
-Exporting the video is done using `moviepy`'s ___VideoFileClip___ API, which processes a video one frame at a time.  The ___LaneDetection__'s `process_image` method is give to the API to create `output_video.mp4`.
+Exporting the video is done using `moviepy`'s ___VideoFileClip___ API, which processes a video one frame at a time.  The __LaneDetection__'s `process_image` method is give to the API to create `output_video.mp4`.
 
 
 ## Camera Calibration
