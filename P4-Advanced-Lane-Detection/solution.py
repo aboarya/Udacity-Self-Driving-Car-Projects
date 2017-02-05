@@ -581,11 +581,13 @@ class LaneDetection(object):
 
         # cv2.imwrite(
         #     './output_images/lanes_detected{}.jpg'.format(self.count), result)
-        txt = """Left curvature {}
-        Right curvature {}""".format(self.left_line.radius_of_curvature,
-                                     self.right_line.radius_of_curvature)
+        txt = "Left curvature {}".format(self.left_line.radius_of_curvature)
 
-        cv2.putText(result, txt, (75, 110), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+        cv2.putText(result, txt, (75, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+        txt = "Right curvature {}".format(self.right_line.radius_of_curvature)
+
+        cv2.putText(result, txt, (75, 160), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
         return result
 
@@ -618,4 +620,5 @@ clip1 = VideoFileClip("project_video.mp4")
 # NOTE: this function expects color images!!
 white_clip = clip1.fl_image(ld.process_image)
 white_clip.write_videofile(white_output, audio=False)
+
 
