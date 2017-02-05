@@ -13,12 +13,14 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./output_images/undistored_frame0.jpg "Undistorted"
+[image1]: ./output_images/undisorted_frame0.jpg "Undistorted"
 [image2]: ./output_images/binary_example_frame0.jpg "Binary Example"
 [image3]: ./output_images/warp_example_frame0.jpg "Warp Example"
 [image4]: ./output_images/fit_visual_frame0.jpg "Fit Visual"
 [image5]: ./output_images/result_frame0.jpg "Output"
 [video6]: ./output_video.mp4 "Video"
+
+# Overview
 
 * [Introduction](#introduction)
 * [Camera Calibration](#camera-calibration)
@@ -31,7 +33,7 @@ The goals / steps of this project are the following:
 
 ## Introduction
 
-The code for this project is structured in this `solution.py` in this directory.  
+The code for this project is structured in `solution.py` in this directory.  
 
 The solution consists of two classes.  The ___LaneDetection___, and the ___Line___ class.
 
