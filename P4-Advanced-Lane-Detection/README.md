@@ -140,13 +140,17 @@ The output of which can be seen below
 
 ####Lane Detection
 
-Once a threasholded image has been warped, the curvatur of the lanes can easily be detected.
+Once a threasholded image has been warped, the curvature of the lanes can easily be detected.
 
 The first step in this process is applying a histogram to the bottom half of the warped binary image.
 
-Since the binary image is simply zeros and ones, the location of the lanes in a historgam is clearly identifiable by the peaks of the histogram; the lanes are the `ones` in this case.
+Since the binary image is simply zeros and ones, the location of the lanes in a historgam is clearly identifiable by the peaks of the histogram.  
 
-Using only the bottom half of the image provides us with a place to begin the search for the entire lane.  We can use a small window from the bottom of the peak of the histogram to begin the search.
+The histogram represents all the `1`'s in the imae and the lane are a peak within that representation.
+
+Using only the bottom half of the image provides us with a place to begin the search for the entire lane.  
+
+We can use a small window from the bottom of the peak of the histogram to begin the search.
 
 The search within the window is similar to the idea of the histogram approach; a concentration of `ones` are the lane and `zeors` are everything else that was removed by our binary thresholding 
 
