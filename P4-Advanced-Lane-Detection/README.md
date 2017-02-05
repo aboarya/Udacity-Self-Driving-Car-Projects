@@ -81,7 +81,8 @@ return self.detect_lines_using_windows(binary_warped, img)
 
 
 ####Undistort Image
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+
+The above is applied to each frame and an example is seen below.
 
 ![alt text][image2]
 
