@@ -79,6 +79,7 @@ if self.left_line.detected and self.right_line.detected:
 return self.detect_lines_using_windows(binary_warped, img)
 ```
 To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
+
 ![alt text][image2]
 
 ####Undistort Image
