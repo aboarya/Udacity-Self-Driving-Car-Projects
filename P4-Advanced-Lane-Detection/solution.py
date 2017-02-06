@@ -391,8 +391,6 @@ class LaneDetection(object):
 
         midpoint = np.int(histogram.shape[0] / 2.)
 
-        self.midpoint = midpoint
-
         leftx_base = np.argmax(histogram[:midpoint])
 
         rightx_base = np.argmax(histogram[midpoint:]) + midpoint
@@ -400,6 +398,8 @@ class LaneDetection(object):
         self.left_line.line_base_pos = leftx_base
 
         self.right_line.line_base_pos = rightx_base
+
+        self.midpoint = rightx_base - leftx_base
 
         nonzeroy, nonzerox = self.sliding_windows(
             binary_warped, out_img, leftx_base, rightx_base)
@@ -565,13 +565,13 @@ class LaneDetection(object):
 
         cv2.putText(result, txt, (75, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
-        txt = "center {:.3f} m".format((640-self.midpoint)*self.pix_to_meter)
+        txt = "center {:.3f} m".format(abs(640-self.midpoint)*self.xm_per_pix)
 
-        cv2.putText(result, txt, (75, 135), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        cv2.putText(result, txt, (75, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
         txt = "Right curvature {:.3f} m".format(self.right_line.radius_of_curvature)
 
-        cv2.putText(result, txt, (75, 160), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        cv2.putText(result, txt, (75, 190), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
         return result
 

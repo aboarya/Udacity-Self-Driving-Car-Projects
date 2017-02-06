@@ -35,7 +35,7 @@ The solution consists of two classes.  The ___LaneDetection___, and the ___Line_
 
 The ___Line___ class is simply a data class while the ___LaneDetection___ class contains the workflow required for this project.
 
-Exporting the video is done using `moviepy`'s ___VideoFileClip___ API, which processes a video one frame at a time.  The __LaneDetection__'s `process_image` method is give to the API to create `output_video.mp4`.
+Exporting the video is done using `moviepy`'s ___VideoFileClip___ API, which processes a video one frame at a time.  The __LaneDetection__'s `process_image` method is given to the API to create `output_video.mp4`.
 
 
 ## Camera Calibration
@@ -201,9 +201,9 @@ A complete video example [link to my video result](./output_video.mp4)
 
 Although this piple works reasonably well on the project video, it is likely to fail under challenging road segments.
 
-This is mainly caused by the fact that binary thresholding under poor light conditions, shade, abd bad weather conditions is likely to produce multiple faint histograms that make the lane detection difficult.
+This is mainly caused by the fact that binary thresholding under poor light conditions, shade, and bad weather conditions is likely to produce multiple faint histograms that make the lane detection difficult.
 
-As mentioned, the radius can be used for sanity check and a better algorithm can be used such that the if detection doesn't make sense, the previous frame can used instead since the road is likely to be continous.
+As mentioned, the radius can be used for sanity check and a better algorithm can be used such that the if detection doesn't make sense, the previous frame can be used instead since the road is likely to be continous.
 
 This can be done up to a certain count of frames before resuming the detection once again.
 
