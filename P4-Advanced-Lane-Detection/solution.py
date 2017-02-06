@@ -565,7 +565,7 @@ class LaneDetection(object):
 
         cv2.putText(result, txt, (75, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
-        txt = "center {:.3f} m".format(self.midpoint*self.pix_to_meter)
+        txt = "center {:.3f} m".format((640-self.midpoint)*self.pix_to_meter)
 
         cv2.putText(result, txt, (75, 135), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
