@@ -3,6 +3,8 @@ import re
 import numpy as np
 import cv2
 
+from sklearn.preprocessing import StandardScaler
+
 class VehicleClassifier(object):
     
     def _os_walk(self, _dir):
@@ -96,6 +98,8 @@ class VehicleClassifier(object):
             spatial_features = spatial_features.reshape((spatial_features.shape[0], 1))
 
             hist_features = hist_features.reshape((hist_features.shape[0], 1))
+
+#             hog_feature = hog_features.reshape(hog_features.shape[0])
             # Append the new feature vector to the features list
             features.append(np.concatenate((spatial_features, hist_features, hog_features)))
         
@@ -104,17 +108,42 @@ class VehicleClassifier(object):
     
     
     
-    def train(self):
+    def load_training_data(self):
+        def shuffle(x, y):
+            perm = np.arange(len(x))
+            np.random.shuffle(perm)
+            x = x[perm]
+            y = y[perm]
+
+            return (x, y)
+    
         vehicle_images = self.load_vehicle_images()[:10]
         
         non_vehicle_images = self.load_non_vehicle_images()[:10]
         
-        x_vehicles, y_vehicles = self.extract_features(vehicle_images, 1)
+        vehicle_features, y_vehicles = self.extract_features(vehicle_images, 1)
         
-        x_n_vehicles, y_n_vehicles = self.extract_features(non_vehicle_images, 0)
+        n_vehicle_features, y_n_vehicles = self.extract_features(non_vehicle_images, 0)
         
-        print(len(x_vehicles), len(y_vehicles), len(x_n_vehicles), len(y_n_vehicles))
-
-
-vc = VehicleClassifier()
-vc.train()
+        assert len(vehicle_features) == len(y_vehicles), 'vehicle features and labels are imbalanced'
+        
+        assert len(n_vehicle_features) == len(y_n_vehicles), 'non vehicle features and labels are imbalanced'
+        
+        count = min(len(vehicle_features), len(n_vehicle_features))
+        
+        vehicle_features = vehicle_features[:count]
+        
+        n_vehicle_features = n_vehicle_features[:count]
+        
+        x = np.vstack((vehicle_features, n_vehicle_features)).astype(np.float64)
+        
+        x = x.reshape((x.shape[0], -1), order='F')
+        
+        y = np.concatenate((y_vehicles, y_n_vehicles))
+        
+        x_scaler = StandardScaler().fit(x)
+        
+        scaled_x = x_scaler.transform(x)
+        
+        return shuffle(scaled_x, y)
+        
