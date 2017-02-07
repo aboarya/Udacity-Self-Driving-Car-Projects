@@ -1,7 +1,7 @@
 import os
 import re
-import numpy
-
+import numpy as np
+import cv2
 
 class VehicleClassifier(object):
     
@@ -26,7 +26,6 @@ class VehicleClassifier(object):
     def bin_spatial_features(self, img, size):
         # Use cv2.resize().ravel() to create the feature vector
         features = img.ravel()
-        print(features.shape,'>>>>>>>>>>>>>>>')
         
         # Return the feature vector
         return features
@@ -47,24 +46,19 @@ class VehicleClassifier(object):
         return hist_features
     
 
-    def hog_features(self, images, blockSize=(16, 16), blockStride=(8,8),
+    def hog_features(self, img, blockSize=(16, 16), blockStride=(8,8),
                             cellSize=(8,8), winSize=(32, 32), nbins=9,
                             derivAperture=1, winSigma=4., histogramNormType=0,
                             L2HysThreshold=2.0000000000000001e-01,
                             gammaCorrection=0, nlevels=64, winStride=(8,8),
                             padding=(8,8), locations=((10,20),)):
         
-        hists = []
-        
-        for img in images:
-            hog = cv2.HOGDescriptor(winSize, blockSize, blockStride, cellSize, nbins,
+        hog = cv2.HOGDescriptor(winSize, blockSize, blockStride, cellSize, nbins,
                                     derivAperture, winSigma, histogramNormType,
                                     L2HysThreshold, gammaCorrection, nlevels)
             
-            #compute(img[, winStride[, padding[, locations]]]) -> descriptors
-            hists.append(hog.compute(image, winStride, padding, locations))
-        
-        return hists
+        #compute(img[, winStride[, padding[, locations]]]) -> descriptors
+        return hog.compute(img, winStride, padding, locations)
     
     def extract_features(self, images, cls, cspace='HLS', spatial_size=(32, 32),
                         hist_bins=32, hist_range=(0, 256)):
@@ -98,9 +92,10 @@ class VehicleClassifier(object):
             
             # Apply hog_features() also to get shape related featuers
             hog_features = self.hog_features(feature_image)
-            
-            print(spatial_features[0].shape, hog_features[0].shape, hist_features[0].shape)
-                
+
+            spatial_features = spatial_features.reshape((spatial_features.shape[0], 1))
+
+            hist_features = hist_features.reshape((hist_features.shape[0], 1))
             # Append the new feature vector to the features list
             features.append(np.concatenate((spatial_features, hist_features, hog_features)))
         
@@ -119,5 +114,7 @@ class VehicleClassifier(object):
         x_n_vehicles, y_n_vehicles = self.extract_features(non_vehicle_images, 0)
         
         print(len(x_vehicles), len(y_vehicles), len(x_n_vehicles), len(y_n_vehicles))
-        
 
+
+vc = VehicleClassifier()
+vc.train()
