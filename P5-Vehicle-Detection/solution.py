@@ -1,19 +1,22 @@
 import os
 import re
-import timeit
+import time
 
 import numpy as np
 import cv2
 
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
 from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 class VehicleClassifier(object):
     
     def __init__(self):
-        self.clf = SVC(verbose=True)
+        self.clf = clf = Pipeline([('scaling', StandardScaler()),
+                ('classification', LinearSVC(loss='hinge')),
+               ])
     
     def _os_walk(self, _dir):
         matches = []
@@ -158,21 +161,11 @@ class VehicleClassifier(object):
         
         x = x.reshape((x.shape[0], -1), order='F')
         
-        y = np.concatenate((y_vehicles, y_n_vehicles))
-        
-        print("normalize features")
-
-        x_scaler = StandardScaler().fit(x)
-        
-        scaled_x = x_scaler.transform(x)
-        
-        print("shuffle data")
-
-        X, Y = shuffle(scaled_x, y)
+        y = np.hstack((y_vehicles, y_n_vehicles))
 
         print("train / test split")
         
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.33, random_state=42)
         
         return (X_train, X_test, y_train, y_test)
     
@@ -187,16 +180,14 @@ def main():
     # assert len(X) == len(Y), 'imbalanced data'
     
     print("train model")
-
+    t = time.time()
     vc.clf.fit(X_train, y_train)
+    
+    t2 = time.time()
+    print(round(t2-t, 2), 'Seconds to train SVC...')
     
     print("testing model")
 
-    y_pred = vc.clf.predict(X_test)
+    # y_pred = vc.clf.predict(X_test)
     
-    print(vc.calc_accuracy(y_test, y_pred))
-
-
-
-if __name__ == '__main__':
-    timeit(main())
+    print('Test Accuracy of classifier = ', round(vlc.clf.score(X_test, y_test), 4))
