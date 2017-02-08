@@ -13,7 +13,7 @@ from sklearn.metrics import accuracy_score
 class VehicleClassifier(object):
     
     def __init__(self):
-        self.clf = SVC()
+        self.clf = SVC(verbose=True)
     
     def _os_walk(self, _dir):
         matches = []
