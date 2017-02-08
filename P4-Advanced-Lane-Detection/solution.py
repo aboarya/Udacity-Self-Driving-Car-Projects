@@ -440,6 +440,32 @@ class LaneDetection(object):
         # Assume you now have a new warped binary image
         # from the next frame of video (also called "binary_warped")
         # It's now much easier to find line pixels!
+
+        # Assuming you have created a warped binary image called "binary_warped"
+        # Take a histogram of the bottom half of the image
+        histogram = np.sum(
+            binary_warped[binary_warped.shape[0] / 2:, :], axis=0)
+
+        # Create an output image to draw on and  visualize the result
+        out_img = np.dstack(
+            (binary_warped, binary_warped, binary_warped)) * 255
+
+        # Find the peak of the left and right halves of the histogram
+        # These will be the starting point for the left and right lines
+
+        midpoint = np.int(histogram.shape[0] / 2.)
+
+        leftx_base = np.argmax(histogram[:midpoint])
+
+        rightx_base = np.argmax(histogram[midpoint:]) + midpoint
+
+        self.left_line.line_base_pos = leftx_base
+
+        self.right_line.line_base_pos = rightx_base
+
+        self.midpoint = rightx_base - leftx_base
+
+        
         nonzero = binary_warped.nonzero()
         nonzeroy = np.array(nonzero[0])
         nonzerox = np.array(nonzero[1])
