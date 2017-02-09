@@ -283,3 +283,6 @@ hot_windows = search_windows(image, windows, vc)
 window_img = draw_boxes(draw_image, hot_windows, color=(0, 0, 255), thick=6)                    
 
 plt.imshow(window_img)
+=======
+main()
+>>>>>>> 84dc5e558d838a5d60f4dd650c980630575ac12c
