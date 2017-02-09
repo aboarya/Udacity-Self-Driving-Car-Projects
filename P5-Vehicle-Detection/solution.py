@@ -57,11 +57,7 @@ class VehicleClassifier(object):
         return hist_features
     
 
-<<<<<<< HEAD
-    def hog_descriptor(self, blockSize=(8, 8), blockStride=(8,8),
-=======
     def hog_descriptor(self, blockSize=(16, 16), blockStride=(8,8),
->>>>>>> 95f4e3ebc62402bbf436e22329cf5161b3a2447e
                             cellSize=(8,8), winSize=(64, 64), nbins=9,
                             derivAperture=1, winSigma=4., histogramNormType=0,
                             L2HysThreshold=2.0000000000000001e-01,
