@@ -1,19 +1,23 @@
 import os
 import re
-import timeit
+import time
 
 import numpy as np
 import cv2
 
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
 from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 class VehicleClassifier(object):
     
     def __init__(self):
-        self.clf = SVC(verbose=True)
+        self.clf = clf = Pipeline([('scaling', StandardScaler()),
+                ('classification', LinearSVC(loss='hinge')),
+               ])
+        self.hog = self.hog_descriptor()
     
     def _os_walk(self, _dir):
         matches = []
@@ -35,12 +39,9 @@ class VehicleClassifier(object):
     
     def bin_spatial_features(self, img, size):
         # Use cv2.resize().ravel() to create the feature vector
-        features = img.ravel()
-        
-        # Return the feature vector
-        return features
+        return cv2.resize(img, size).ravel()
     
-    def color_hist_features(self, img, nbins=32, bins_range=(0, 256)):
+    def color_hist_features(self, img, nbins=16, bins_range=(0, 256)):
         
         # Compute the histogram of the color channels separately
         channel1_hist = np.histogram(img[:,:,0], bins=nbins, range=bins_range)
@@ -56,30 +57,27 @@ class VehicleClassifier(object):
         return hist_features
     
 
-    def hog_features(self, img, blockSize=(16, 16), blockStride=(8,8),
-                            cellSize=(8,8), winSize=(32, 32), nbins=9,
+    def hog_descriptor(self, blockSize=(8, 8), blockStride=(8,8),
+                            cellSize=(8,8), winSize=(64, 64), nbins=9,
                             derivAperture=1, winSigma=4., histogramNormType=0,
                             L2HysThreshold=2.0000000000000001e-01,
                             gammaCorrection=0, nlevels=64, winStride=(8,8),
                             padding=(8,8), locations=((10,20),)):
         
-        hog = cv2.HOGDescriptor(winSize, blockSize, blockStride, cellSize, nbins,
+        return cv2.HOGDescriptor(winSize, blockSize, blockStride, cellSize, nbins,
                                     derivAperture, winSigma, histogramNormType,
                                     L2HysThreshold, gammaCorrection, nlevels)
-            
-        #compute(img[, winStride[, padding[, locations]]]) -> descriptors
-        return hog.compute(img, winStride, padding, locations)
     
-    def extract_features(self, images, cls, cspace='HLS', spatial_size=(32, 32),
+    def extract_features(self, images, cls, cspace='YUV', spatial_size=(32, 32),
                         hist_bins=32, hist_range=(0, 256)):
         
         # Create a list to append feature vectors to
         features = []
         
         # Iterate through the list of images
-        for file in images:
+        for img in images:
             # Read in each one by one
-            image = cv2.imread(file)
+            image = cv2.imread(img)
             
             # apply color conversion if other than 'RGB'
             if cspace != 'RGB':
@@ -101,11 +99,7 @@ class VehicleClassifier(object):
             hist_features = self.color_hist_features(feature_image, nbins=hist_bins, bins_range=hist_range)
             
             # Apply hog_features() also to get shape related featuers
-            hog_features = self.hog_features(feature_image)
-
-            spatial_features = spatial_features.reshape((spatial_features.shape[0], 1))
-
-            hist_features = hist_features.reshape((hist_features.shape[0], 1))
+            hog_features = self.hog.compute(feature_image[:,:,0])[:,0]
 
             # Append the new feature vector to the features list
             features.append(np.concatenate((spatial_features, hist_features, hog_features)))
@@ -158,21 +152,11 @@ class VehicleClassifier(object):
         
         x = x.reshape((x.shape[0], -1), order='F')
         
-        y = np.concatenate((y_vehicles, y_n_vehicles))
-        
-        print("normalize features")
-
-        x_scaler = StandardScaler().fit(x)
-        
-        scaled_x = x_scaler.transform(x)
-        
-        print("shuffle data")
-
-        X, Y = shuffle(scaled_x, y)
+        y = np.hstack((y_vehicles, y_n_vehicles))
 
         print("train / test split")
         
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.33, random_state=42)
         
         return (X_train, X_test, y_train, y_test)
     
@@ -188,15 +172,18 @@ def main():
     
     print("train model")
 
+    t = time.time()
+
     vc.clf.fit(X_train, y_train)
+    
+    t2 = time.time()
+
+    print(round(t2-t, 2), 'Seconds to train SVC...')
     
     print("testing model")
 
-    y_pred = vc.clf.predict(X_test)
+    # y_pred = vc.clf.predict(X_test)
     
-    print(vc.calc_accuracy(y_test, y_pred))
+    print('Test Accuracy of classifier = ', round(vc.clf.score(X_test, y_test), 4))
 
-
-
-if __name__ == '__main__':
-    timeit(main())
+main()
