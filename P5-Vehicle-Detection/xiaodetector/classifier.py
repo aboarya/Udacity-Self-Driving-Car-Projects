@@ -176,3 +176,9 @@ class VehicleClassifier(object):
         with open('./model/model.p', 'wb'):
             pickle.dump(self.clf)
 
+    def predict(self, features):
+        self.clf = pickle.load(open('./model/model.p'. 'rb'))
+
+        return self.clf.predict(features)
+
+
