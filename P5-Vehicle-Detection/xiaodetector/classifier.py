@@ -2,6 +2,7 @@ import os
 import re
 import time
 import pickle
+import glob
 
 import numpy as np
 import cv2
@@ -21,26 +22,13 @@ class VehicleClassifier(object):
 
         # set descriptor for got features
         self.hog = self.hog_descriptor()
-        
-
-    
-    def _os_walk(self, _dir):
-        matches = []
-        
-        img_re = re.compile(r'.+\.(jpg|png|jpeg|tif|tiff)$', re.IGNORECASE)
-        
-        for root, dirnames, filenames in os.walk(_dir):
-            matches.extend(os.path.join(root, name) for name in filenames if img_re.match(name))
-        
-        return matches
+        self.location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
     
     def load_non_vehicle_images(self):
-        return self._os_walk("./non-vehicles")
+        return glob.glob(self.location+'/../non-vehicles/**/*')
         
-        self.non_vehicle_labels  = [0] * len(non_vehicle_images)
-    
     def load_vehicle_images(self):
-        return self._os_walk("./vehicles")
+        return glob.glob(self.location+'/../vehicles/**/*')
     
     def bin_spatial_features(self, img, size):
         # Use cv2.resize().ravel() to create the feature vector
@@ -73,7 +61,7 @@ class VehicleClassifier(object):
                                     derivAperture, winSigma, histogramNormType,
                                     L2HysThreshold, gammaCorrection, nlevels)
 
-    def extact_image_features(self, feature_image, cspace='YUV', spatial_size=(32, 32),
+    def extact_image_features(self, image, cspace='YUV', spatial_size=(32, 32),
                         hist_bins=32, hist_range=(0, 256)):
         # apply color conversion if other than 'RGB'
         if cspace != 'RGB':
@@ -118,8 +106,7 @@ class VehicleClassifier(object):
         # Return list of feature vectors and equal length labels
         return (features, [cls] * len(features))
     
-    
-    
+
     def load_data(self):
     
         print("loading vehicle images")
@@ -173,12 +160,10 @@ class VehicleClassifier(object):
 
         print(round(t2-t, 2), 'Seconds to train SVC...')
 
-        with open('./model/model.p', 'wb'):
-            pickle.dump(self.clf)
+        with open(self.location+'/model/model.p', 'wb') as _f:
+            pickle.dump(self.clf, _f)
 
     def predict(self, features):
-        self.clf = pickle.load(open('./model/model.p'. 'rb'))
+        self.clf = pickle.load(open(self.location+'/model/model.p', 'rb'))
 
         return self.clf.predict(features)
-
-

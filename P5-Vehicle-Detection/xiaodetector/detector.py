@@ -2,7 +2,7 @@
 
 class VehicleDetector(object):
 
-	def __init__(self):
+	def __init__(self, clf):
 		self.clf = Classifer()
 
 	def centroid(box, as_int=False):
@@ -150,10 +150,10 @@ class VehicleDetector(object):
     	#8) Return windows for positive detections
     	return on_windows
 
-    def detect(self):
+    def detect(self, img):
     	y_start_stop = [350, 720] # Min and max in y to search in slide_window()
 
-		image = cv2.imread('test_images/test5.jpg')
+		image = cv2.imread(img)
 
 		draw_image = np.copy(image)
 
@@ -174,7 +174,7 @@ class VehicleDetector(object):
 		
 		labels = label(thresh_heatmap)
 	
-		im2 = draw_labeled_bboxes(np.copy(image), labels)
+		im = draw_labeled_bboxes(np.copy(image), labels)
 		
-		plt.imshow(im2)
+		return im
 

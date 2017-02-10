@@ -1,6 +1,10 @@
+import os
+import pickle
+
 import argparse
 
 from xiaodetector import Classifier
+from xiaodetector import Detector
 
 def make_args():
 	parser = argparse.ArgumentParser(description='')
@@ -15,9 +19,10 @@ def return_model(args):
 		load = False
 
 	if load and args.model and os.path.exists(args.model):
-		return pickle.load(open('./model/model.p', 'rb'))
+		print("loading stored model")
+		return pickle.load(open('./xiaodetector/model/model.p', 'rb'))
 
-	if not args.model or not os.path.exists('./model/model.p'):
+	if not args.model or not os.path.exists('./xiaodetector/model/model.p'):
 		svm = Classifier()
 		
 		svm.load_data()
@@ -31,5 +36,12 @@ if __name__ == '__main__':
 
 	args = parser.parse_args()
 
-	model = return_model(args)
+	clf = return_model(args)
 
+	detector = Detector(clf)
+
+	for img in os.listdir('./test_images'):
+		im = detecotr.detect(img)
+		plt.imshow(im)
+
+	plt.show()
