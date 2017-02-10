@@ -2,6 +2,7 @@ import os
 import pickle
 
 import argparse
+import cv2
 
 from xiaodetector import Classifier
 from xiaodetector import Detector
@@ -41,7 +42,6 @@ if __name__ == '__main__':
 	detector = Detector(clf)
 
 	for img in os.listdir('./test_images'):
-		im = detecotr.detect(img)
-		plt.imshow(im)
-
-	plt.show()
+		image = cv2.imread('./test_images/'+img)
+		im = detector.detect(image)
+		cv2.imwrite('./output_images/'+img, im)
