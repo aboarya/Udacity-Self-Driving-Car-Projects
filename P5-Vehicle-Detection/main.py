@@ -4,8 +4,7 @@ import pickle
 import argparse
 import cv2
 
-from xiaodetector import Classifier
-from xiaodetector import Detector
+from xiaodetector import Tracker, Classifier
 
 def make_args():
 	parser = argparse.ArgumentParser(description='')
@@ -33,15 +32,23 @@ def return_model(args):
 		return pickle.load(open('./model/model.p', 'rb'))
 
 if __name__ == '__main__':
-	parser = make_args()
 
-	args = parser.parse_args()
-
-	clf = return_model(args)
-
-	detector = Detector(clf)
+	tracker = Tracker()
 
 	for img in os.listdir('./test_images'):
-		image = cv2.imread('./test_images/'+img)
-		im = detector.detect(image)
-		cv2.imwrite('./output_images/'+img, im)
+		try:
+			image = cv2.imread('./test_images/'+img)
+			im = tracker.track(image)
+			cv2.imwrite('./output_images/'+img, im)
+			break
+		except Exception as e:
+			raise e
+			break
+	# svm = Classifier()
+	
+	# svm.load_data()
+
+	# svm.save_model()
+	
+	# svm.score()		
+	

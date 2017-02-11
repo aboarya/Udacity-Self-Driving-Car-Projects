@@ -7,11 +7,32 @@ import glob
 import numpy as np
 import cv2
 
+from skimage.feature import hog
+
 from sklearn.svm import SVC, LinearSVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+
+def get_hog_features(img, orient, pix_per_cell, cell_per_block, 
+                        vis=False, feature_vec=True):
+    # Call with two outputs if vis==True
+    if vis == True:
+        features, hog_image = hog(img, orientations=orient, 
+                                  pixels_per_cell=(pix_per_cell, pix_per_cell),
+                                  cells_per_block=(cell_per_block, cell_per_block), 
+                                  transform_sqrt=True, 
+                                  visualise=vis, feature_vector=feature_vec)
+        return features, hog_image
+    # Otherwise call with one output
+    else:      
+        features = hog(img, orientations=orient, 
+                       pixels_per_cell=(pix_per_cell, pix_per_cell),
+                       cells_per_block=(cell_per_block, cell_per_block), 
+                       transform_sqrt=True, 
+                       visualise=vis, feature_vector=feature_vec)
+        return features
 
 class VehicleClassifier(object):
     
@@ -34,7 +55,7 @@ class VehicleClassifier(object):
         # Use cv2.resize().ravel() to create the feature vector
         return cv2.resize(img, size).ravel()
     
-    def color_hist_features(self, img, nbins=16, bins_range=(0, 256)):
+    def color_hist_features(self, img, nbins=32, bins_range=(0, 256)):
         
         # Compute the histogram of the color channels separately
         channel1_hist = np.histogram(img[:,:,0], bins=nbins, range=bins_range)
@@ -64,26 +85,31 @@ class VehicleClassifier(object):
     def extact_image_features(self, image, cspace='YUV', spatial_size=(32, 32),
                         hist_bins=32, hist_range=(0, 256)):
         # apply color conversion if other than 'RGB'
-        if cspace != 'RGB':
-            if cspace == 'HSV':
-                feature_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-            elif cspace == 'LUV':
-                feature_image = cv2.cvtColor(image, cv2.COLOR_BGR2LUV)
-            elif cspace == 'HLS':
-                feature_image = cv2.cvtColor(image, cv2.COLOR_BGR2HLS)
-            elif cspace == 'YUV':
-                feature_image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
-            
-            else: feature_image = np.copy(image)      
+        feature_image = cv2.cvtColor(image, cv2.COLOR_BGR2YCrCb)
                 
         # Apply bin_spatial() to get spatial color features
-        spatial_features = self.bin_spatial_features(feature_image, spatial_size)
+        spatial_features = self.bin_spatial_features(feature_image, (32, 32))
             
         # Apply color_hist() also with a color space option now
-        hist_features = self.color_hist_features(feature_image, nbins=hist_bins, bins_range=hist_range)
+        hist_features = self.color_hist_features(feature_image)
 
         # Apply hog_features() also to get shape related featuers
-        hog_features = self.hog.compute(feature_image[:,:,0])[:,0]
+        # hog_features = self.hog.compute(feature_image[:,:,0])[:,0]
+
+        # hog_features = get_hog_features(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY), 9, 8, 2, feature_vec=False).ravel()
+
+        ch1 = feature_image[:,:,0]
+        ch2 = feature_image[:,:,1]
+        ch3 = feature_image[:,:,2]
+
+        hog1 = get_hog_features(ch1, 9, 8, 2, feature_vec=False).ravel()
+
+        hog2 = get_hog_features(ch2, 9, 8, 2, feature_vec=False).ravel()
+
+        hog3 = get_hog_features(ch3, 9, 8, 2, feature_vec=False).ravel()
+
+
+        hog_features = np.hstack((hog1, hog2, hog3))
 
         # Append the new feature vector to the features list
         return np.concatenate((spatial_features, hist_features, hog_features))
@@ -141,7 +167,9 @@ class VehicleClassifier(object):
         
         x = np.vstack((vehicle_features, n_vehicle_features)).astype(np.float64)
         
-        x = x.reshape((x.shape[0], -1), order='F')
+        # x = x.reshape((x.shape[0], -1), order='F')
+
+        # x = x.reshape((1, -1))
         
         y = np.hstack((y_vehicles, y_n_vehicles))
 
@@ -167,3 +195,9 @@ class VehicleClassifier(object):
         self.clf = pickle.load(open(self.location+'/model/model.p', 'rb'))
 
         return self.clf.predict(features)
+
+
+    def score(self):
+        self.load_data()
+        self.clf = pickle.load(open(self.location+'/model/model.p', 'rb'))
+        print(self.clf.score(self.X_test, self.y_test))
