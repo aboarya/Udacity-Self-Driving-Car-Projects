@@ -31,6 +31,8 @@ class VehicleDetector(object):
     def __init__(self):
         self.classifier = Classifier()
 
+        self.count = 0
+
     def update_heatmap(self, candidates, image_shape, heatmap=None):
         if heatmap is None:
             heatmap = np.zeros((image_shape[0], image_shape[1]), np.uint8)
@@ -175,6 +177,8 @@ class VehicleDetector(object):
                 # Return the image copy with boxes drawn
             return imcopy
 
+        scale = 1.5
+
         y_start_stop = [400, 656] # Min and max in y to search in slide_window()
 
         draw_image = np.copy(image)
@@ -184,7 +188,7 @@ class VehicleDetector(object):
 
         roi_window = draw_image[y_start_stop[0]:y_start_stop[1],:,:]
 
-        roi_window = cv2.resize(roi_window, (np.int(roi_window.shape[1]/1.5), np.int(roi_window.shape[0]/1.5)))
+        roi_window = cv2.resize(roi_window, (np.int(roi_window.shape[1]/scale), np.int(roi_window.shape[0]/scale)))
 
         feature_image = cv2.cvtColor(roi_window, cv2.COLOR_BGR2YCrCb)
 
@@ -199,8 +203,11 @@ class VehicleDetector(object):
         hog3 = get_hog_features(ch3, 9, 8, 2, feature_vec=False)
 
         orient = 9  # HOG orientations
+        
         pix_per_cell = 8 # HOG pixels per cell
+        
         cell_per_block = 2 # HOG cells per block
+        
         window = 64
 
         nxblocks = (roi_window.shape[1] // pix_per_cell) - 1
@@ -216,17 +223,14 @@ class VehicleDetector(object):
         nxsteps = (nxblocks - nblocks_per_window) // cells_per_step
 
         nysteps = (nyblocks - nblocks_per_window) // cells_per_step
-
-        count = 0
-
-        scale = 1.5
         
-        heatmap = np.zeros((image.shape[0], image.shape[1]), np.uint8)
+        if self.count % 10 == 0:
+            self.heatmap = np.zeros((image.shape[0], image.shape[1]), np.uint8)
 
         for xb in range(nxsteps):
             for yb in range(nysteps):
 
-                count += 1
+                self.count += 1
 
                 try:
                     ypos = yb*cells_per_step
@@ -264,16 +268,16 @@ class VehicleDetector(object):
 
                         cv2.rectangle(draw_image, (xbox_left, ytop_draw+y_start_stop[0]), (xbox_left+win_draw, ytop_draw+win_draw+y_start_stop[0]),  (0,0,255), 6)
 
-                        heatmap[ytop_draw+y_start_stop[0]:ytop_draw+win_draw+y_start_stop[0], xbox_left:xbox_left+win_draw] += 1 
+                        self.heatmap[ytop_draw+y_start_stop[0]:ytop_draw+win_draw+y_start_stop[0], xbox_left:xbox_left+win_draw] += 1 
 
                 except Exception as e:
                     raise e
     
-        heatmap[heatmap < 2] = 0
+        self.heatmap[self.heatmap < 2] = 0
         
-        cv2.GaussianBlur(heatmap, (31, 31), 0, dst=heatmap)
+        cv2.GaussianBlur(self.heatmap, (31, 31), 0, dst=self.heatmap)
         
-        labels = label(heatmap)
+        labels = label(self.heatmap)
     
         im = self.draw_labeled_bboxes(np.copy(image), labels)
 
