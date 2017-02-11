@@ -8,6 +8,6 @@ class VehicleTracker(object):
 		self.detector = Detector()
 
 	def track(self, image):
-		im, labels = self.detector.detect(image)
+		im = self.detector.detect(image)
 		
 		return im
