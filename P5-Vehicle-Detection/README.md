@@ -11,9 +11,9 @@ The goals / steps of this project are the following:
 * Estimate a bounding box for vehicles detected.
 
 [//]: # (Image References)
-[image1]: ./output_images/car_not_car.png
+[image1]: ./output_images/hog_feature_scatter_plot.jpg
 [image2]: ./examples/HOG_example.jpg
-[image3]: ./examples/sliding_windows.jpg
+[image3]: ./examples/test1.jpg
 [image4]: ./examples/sliding_window.jpg
 [image5]: ./examples/bboxes_and_heat.png
 [image6]: ./examples/labels_map.png
@@ -24,7 +24,10 @@ The goals / steps of this project are the following:
 
 * [Introduction](#introduction)
 * [Histogram of Oriented Gradients](#histogram-of-oriented-gradients)
-* [Pipeline](#pipeline)
+* [Vehicle Classification](#vehicle-classification)
+* [Sliding Window Search](#sliding-window-search)
+* [Video Implementation](#video-implementation)
+* [Discussion](#dicussion)
 
 ## Introduction
 
@@ -34,59 +37,60 @@ For this project I created a small python package called `xiaodetector` which co
 * `detector.py` : Uses OpenCV and a sliding window approach to detect and analyze classifications
 * `tracker.py` : Uses an admittadly too simple an algorithm for vehicle tracking
 
-
-
 ## Histogram of Oriented Gradients
 
-####1. Explain how (and identify where in your code) you extracted HOG features from the training images.
+The __VehicleClassifier__ class in the `classifier.py` module carries out the task of training a model using a comination of spatial, color histogram and __HOG__ features.
 
-The code for this step is contained in the first code cell of the IPython notebook (or in lines # through # of the file called `some_file.py`).  
+All images are converted to the __HLS__ color space.  The __Saturation__ channel of the __HLS__ color space is particulary useful for color diffrentiation, while the __Hue__ channel is useful in shape detection when used in __HOG__ feature extaction.
 
-I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
+The training of the model is using the Udacity.com provided dataset of Vechiles and Non-Vehicles.
 
-![alt text][image1]
+Images are loaded into two separate arrays.  Features for each set of images are extracted in the `extract_features` method of the `classifier.py` module.
 
-I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
-
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
+Below is an example using the `HLS` color space and HOG parameters of `orientations=9`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)` for vehicle and one non-vehicle:
 
 
 ![alt text][image2]
 
-####2. Explain how you settled on your final choice of HOG parameters.
+The choice of __HOG__ parameters was a matter of `trial-and-error` by re-training the classifier and running the code against the `test_video.mp4`.  
 
-I tried various combinations of parameters and...
+Inital attemps were made to use an `End-to-Endd` approach whereby no false positives would be detected, however this was found to be not possible.
 
-####3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
+Flase positives were later elliminated programatically in a combination of the following steps:
 
-I trained a linear SVM using...
+* A Heatmap over several frames
+* Bounding box width and height validation
 
-###Sliding Window Search
+## Vehicle Classification
 
-####1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
+Once feature extaction is complete in the __VehicleClassifier__ module, the data is split into training and test data using `sklearn`'s __train_test_split__.
 
-I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
+An __SVCLinear__ classifier in combination with the __StandardScaler__ are used to train the model and the classifier is stored in a pickle in the __models__ directory.
+
+The Classifier was able to score `0.9912` on the test set.
+
+## Sliding Window Search
+
+To improve the efficiency of the efficiency of the detection and tracking, the __HOG__ features at prediction time were taken against an ROI of the image, rather than on independent windows.
+
+The __VechileDetector__ module's `predict` method uses devides the ROI into windows, retrieves a subset of the __HOG__ features, then creates color histogram and spatial features for the window.
+
+All features are then combined and used in classification.  Once a detection is made, a heatmap is updated and threshold of `3` is taken over `5` frames.
+
+After each `5` frames the heatmap is reset.
+
+The __VehicleTracker__ module then makes a decision based on bounding box size of whether the detection is a Vehicle or a false positive.
+
+The __VechileTracker__ module maintians a list of tracked vehicles and updated their positions based on new predictions.
 
 ![alt text][image3]
 
-####2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
-
-Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
-
-![alt text][image4]
 ---
 
-### Video Implementation
+## Video Implementation
 
-####1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
-Here's a [link to my video result](./project_video.mp4)
+Example of the processing of the video can be seen int this [link](./output_video.mp4)
 
-
-####2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
-
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
-
-Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
 
 ### Here are six frames and their corresponding heatmaps:
 
@@ -102,9 +106,16 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 ---
 
-###Discussion
+## Discussion
 
-####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+There are several issues with my appraoch to this problem.  While the classification and heatmap appraoch are in good standing, the tracking algorith is far too simple.
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+The tracking is naive and assume any bounding box larger than a specific size is a vehicle.  Tracking does not account for any history of detection and only stored and updated the bounding boxes as the vehicle's positions.
+
+Most notable is overlaping vehicle.  The detection and tracking on overlapping vechicles fails and at times is only able to distinguish both vehicles as one.
+
+The tracking is also not very stable.  The bounding boxes of a detected vehicle are not fixed on the vehicle as it moves.
+
+
+
 

@@ -9,6 +9,7 @@ class Car(object):
 
     def __init__(self, position):
         self.position = position
+        self.old_position = position
 
     def compare(self, bbox):
         # print(abs(self.position[0][0] - bbox[0][0]))
@@ -16,16 +17,19 @@ class Car(object):
             return True
 
         self.position = bbox
+        self.old_position = self.position
+        self.xdiff = abs(self.position[0][0] - self.old_position[0][0])
+        self.ydiff = abs(self.position[0][1] - self.old_position[0][1])
         return False
 
     def draw(self, img):
 
         w = 150
-        h = 100
+        h = 75
 
-        x1, y1, x2, y2 = self.position[0][0]+25, self.position[0][1], self.position[0][0]+w, self.position[0][1]+h
+        x1, y1, x2, y2 = self.position[0][0], self.position[0][1], self.position[0][0]+w, self.position[0][1]+h
 
-        cv2.rectangle(img, (x1, y1), (x2, y2), (0,0,255), 6)
+        cv2.rectangle(img, (x1+self.xdiff, y1+self.ydiff), (x2, y2), (0,0,255), 6)
 
 
 class VehicleTracker(object):
@@ -41,7 +45,7 @@ class VehicleTracker(object):
         # print(abs(bbox[0][0] - bbox[1][0]))
         # print(abs(bbox[0][1] - bbox[1][1]))
         # print(">>>>>>>>>>>>>>")
-        if abs(bbox[0][0] - bbox[1][0]) < 50 or abs(bbox[0][1] - bbox[1][1]) < 50:
+        if abs(bbox[0][0] - bbox[1][0]) < 75 or abs(bbox[0][1] - bbox[1][1]) < 75:
             car = False
 
         return car
