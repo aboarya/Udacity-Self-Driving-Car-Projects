@@ -136,7 +136,7 @@ class VehicleDetector(object):
         
         cell_per_block = self.classifier.cell_per_block # HOG cells per block
         
-        window = 128
+        window = 32
 
         nxblocks = (roi_window.shape[1] // pix_per_cell) - 1
         
@@ -144,21 +144,26 @@ class VehicleDetector(object):
         
         nfeat_per_block = orient*cell_per_block**2
 
-        nblocks_per_window = (window // pix_per_cell) -1
+        # print(nxblocks, nyblocks, nfeat_per_block)
+
+        nblocks_per_window = (window // 4) -1
         
         cells_per_step = 2
 
         nxsteps = (nxblocks - nblocks_per_window) // cells_per_step
 
         nysteps = (nyblocks - nblocks_per_window) // cells_per_step
+
+        #print(nxsteps, nysteps, nxblocks, nyblocks, nblocks_per_window, cells_per_step)
         
-        if self.count % 3 == 0:
+        if self.count % 5 == 0:
             self.heatmap = np.zeros((image.shape[0], image.shape[1]), np.uint8)
 
-        # self.heatmap = np.zeros((image.shape[0], image.shape[1]), np.uint8)
+        # # self.heatmap = np.zeros((image.shape[0], image.shape[1]), np.uint8)
 
         # self.heatmap //= self.count
-        self.boxes.clear()
+
+        # self.boxes.clear()
 
         for xb in range(nxsteps):
             for yb in range(nysteps):
@@ -197,7 +202,7 @@ class VehicleDetector(object):
 
                         win_draw = np.int(window*scale)
 
-                        self.boxes.append((xbox_left, ytop_draw+y_start_stop[0], xbox_left+win_draw, ytop_draw+win_draw+y_start_stop[0]))
+                        # self.boxes.append((xbox_left, ytop_draw+y_start_stop[0], xbox_left+win_draw, ytop_draw+win_draw+y_start_stop[0]))
 
                         self.heatmap[ytop_draw+y_start_stop[0]:ytop_draw+win_draw+y_start_stop[0], xbox_left:xbox_left+win_draw] += 1
 
@@ -206,46 +211,46 @@ class VehicleDetector(object):
     
         self.count += 1
 
-        self.heatmap[self.heatmap < 4] = 0
+        self.heatmap[self.heatmap < 3] = 0
         
-        # cv2.GaussianBlur(self.heatmap, (31, 31), 0, dst=self.heatmap)
+        cv2.GaussianBlur(self.heatmap, (31, 31), 0, dst=self.heatmap)
         
-        # labels = label(self.heatmap)
+        labels = label(self.heatmap)
 
-        # print(labels[1])
+        return labels
     
         # im = self.draw_labeled_bboxes(np.copy(image), labels)
 
-        im = np.copy(image)
+        # im = np.copy(image)
 
-        centroids = centroid_function(self.boxes, im, self.heatmap)
+        # centroids = centroid_function(self.boxes, im, self.heatmap)
 
-        for centroid in centroids:
-            new = True
-            for car in self.cars:
-                new = car.update(centroid)
-            if new == False:
-                continue
-            if new == True:
-                self.cars.append(Vehicle(centroid))
+        # for centroid in centroids:
+        #     new = True
+        #     for car in self.cars:
+        #         new = car.update(centroid)
+        #     if new == False:
+        #         continue
+        #     if new == True:
+        #         self.cars.append(Vehicle(centroid))
 
-        next_cars = []
-        positions = []
+        # next_cars = []
+        # positions = []
 
-        for car in self.cars:
-            position, flag = car.get_position()
-            if flag == False:
-                next_cars.append(car)
-                positions.append(position)
+        # for car in self.cars:
+        #     position, flag = car.get_position()
+        #     if flag == False:
+        #         next_cars.append(car)
+        #         positions.append(position)
 
-        self.cars = next_cars
+        # self.cars = next_cars
 
-        try:
-            for (x1, y1, x2, y2) in positions:
-                cv2.rectangle(im, (x1, y1), (x2, y2), (255, 0, 0), thickness=2)
-        except Exception as e:
-            raise e
-            pass
+        # try:
+        #     for (x1, y1, x2, y2) in positions:
+        #         cv2.rectangle(im, (x1, y1), (x2, y2), (255, 0, 0), thickness=2)
+        # except Exception as e:
+        #     raise e
+        #     pass
 
         # im = np.copy(image)
 
