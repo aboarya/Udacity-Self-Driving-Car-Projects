@@ -15,24 +15,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
-def get_hog_features(img, orient, pix_per_cell, cell_per_block, 
-                        vis=False, feature_vec=True):
-    # Call with two outputs if vis==True
-    if vis == True:
-        features, hog_image = hog(img, orientations=orient, 
-                                  pixels_per_cell=(pix_per_cell, pix_per_cell),
-                                  cells_per_block=(cell_per_block, cell_per_block), 
-                                  transform_sqrt=True, 
-                                  visualise=vis, feature_vector=feature_vec)
-        return features, hog_image
-    # Otherwise call with one output
-    else:      
-        features = hog(img, orientations=orient, 
-                       pixels_per_cell=(pix_per_cell, pix_per_cell),
-                       cells_per_block=(cell_per_block, cell_per_block), 
-                       transform_sqrt=True, 
-                       visualise=vis, feature_vector=feature_vec)
-        return features
 
 class VehicleClassifier(object):
     
@@ -41,9 +23,23 @@ class VehicleClassifier(object):
                 ('classification', LinearSVC(loss='hinge')),
                ])
 
-        # set descriptor for got features
-        self.hog = self.hog_descriptor()
+        self.pix_per_cell = 8
+
+        self.orient = 9
+
+        self.cell_per_block = 2
+
         self.location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+
+    def get_hog_features(self, img, feature_vec=True):
+
+        features = hog(img, orientations=self.orient, 
+                       pixels_per_cell=(self.pix_per_cell, self.pix_per_cell),
+                       cells_per_block=(self.cell_per_block, self.cell_per_block), 
+                       transform_sqrt=True, 
+                       visualise=False, feature_vector=feature_vec)
+
+        return features
     
     def load_non_vehicle_images(self):
         return glob.glob(self.location+'/../non-vehicles/**/*')
@@ -69,53 +65,33 @@ class VehicleClassifier(object):
         
         # Return the individual histograms, bin_centers and feature vector
         return hist_features
-    
 
-    def hog_descriptor(self, blockSize=(8, 8), blockStride=(8,8),
-                            cellSize=(8,8), winSize=(64, 64), nbins=9,
-                            derivAperture=1, winSigma=4., histogramNormType=0,
-                            L2HysThreshold=2.0000000000000001e-01,
-                            gammaCorrection=0, nlevels=64, winStride=(8,8),
-                            padding=(8,8), locations=((10,20),)):
-        
-        return cv2.HOGDescriptor(winSize, blockSize, blockStride, cellSize, nbins,
-                                    derivAperture, winSigma, histogramNormType,
-                                    L2HysThreshold, gammaCorrection, nlevels)
+    def extact_image_features(self, image, spatial_size=(32, 32), hist_bins=32, hist_range=(0, 256)):
 
-    def extact_image_features(self, image, cspace='YUV', spatial_size=(32, 32),
-                        hist_bins=32, hist_range=(0, 256)):
-        # apply color conversion if other than 'RGB'
-        feature_image = cv2.cvtColor(image, cv2.COLOR_BGR2YCrCb)
+        feature_image = cv2.cvtColor(image, cv2.COLOR_BGR2HLS)
                 
         # Apply bin_spatial() to get spatial color features
-        spatial_features = self.bin_spatial_features(feature_image, (32, 32))
+        spatial_features = self.bin_spatial_features(feature_image, spatial_size)
             
         # Apply color_hist() also with a color space option now
-        hist_features = self.color_hist_features(feature_image)
-
-        # Apply hog_features() also to get shape related featuers
-        # hog_features = self.hog.compute(feature_image[:,:,0])[:,0]
-
-        # hog_features = get_hog_features(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY), 9, 8, 2, feature_vec=False).ravel()
+        hist_features = self.color_hist_features(feature_image, nbins=hist_bins)
 
         ch1 = feature_image[:,:,0]
         ch2 = feature_image[:,:,1]
         ch3 = feature_image[:,:,2]
 
-        hog1 = get_hog_features(ch1, 9, 8, 2, feature_vec=False).ravel()
+        hog1 = self.get_hog_features(ch1, feature_vec=False).ravel()
 
-        hog2 = get_hog_features(ch2, 9, 8, 2, feature_vec=False).ravel()
+        hog2 = self.get_hog_features(ch2, feature_vec=False).ravel()
 
-        hog3 = get_hog_features(ch3, 9, 8, 2, feature_vec=False).ravel()
-
+        hog3 = self.get_hog_features(ch3, feature_vec=False).ravel()
 
         hog_features = np.hstack((hog1, hog2, hog3))
 
         # Append the new feature vector to the features list
         return np.concatenate((spatial_features, hist_features, hog_features))
     
-    def extract_features(self, images, cls, cspace='YUV', spatial_size=(32, 32),
-                        hist_bins=32, hist_range=(0, 256)):
+    def extract_features(self, images, cls, spatial_size=(32, 32), hist_bins=32):
         
         # Create a list to append feature vectors to
         features = []
@@ -125,9 +101,7 @@ class VehicleClassifier(object):
             # Read in each one by one
             image = cv2.imread(img)
             
-            
-            features.append(self.extact_image_features(image, cspace='YUV', spatial_size=(32, 32),
-                        hist_bins=32, hist_range=(0, 256)))
+            features.append(self.extact_image_features(image, hist_bins=hist_bins, spatial_size=spatial_size))
 
         # Return list of feature vectors and equal length labels
         return (features, [cls] * len(features))
@@ -145,31 +119,27 @@ class VehicleClassifier(object):
         
         print("extract vehicle features")
 
-        vehicle_features, y_vehicles = self.extract_features(vehicle_images, 1)
+        vehicle_features, y_vehicles = self.extract_features(vehicle_images, 1, hist_bins=64, spatial_size=(32, 32))
         
         print("extract non-vehicle features")
 
-        n_vehicle_features, y_n_vehicles = self.extract_features(non_vehicle_images, 0)
+        n_vehicle_features, y_n_vehicles = self.extract_features(non_vehicle_images, 0, hist_bins=64, spatial_size=(32, 32))
         
         assert len(vehicle_features) == len(y_vehicles), 'vehicle features and labels are imbalanced'
         
         assert len(n_vehicle_features) == len(y_n_vehicles), 'non vehicle features and labels are imbalanced'
         
-        count = min(len(vehicle_features), len(n_vehicle_features))
+        # count = min(len(vehicle_features), len(n_vehicle_features))
         
-        vehicle_features = vehicle_features[:count]
+        # vehicle_features = vehicle_features[:count]
         
-        n_vehicle_features = n_vehicle_features[:count]
+        # n_vehicle_features = n_vehicle_features[:count]
 
-        y_vehicles = y_vehicles[:count]
+        # y_vehicles = y_vehicles[:count]
 
-        y_n_vehicles = y_n_vehicles[:count]
+        # y_n_vehicles = y_n_vehicles[:count]
         
         x = np.vstack((vehicle_features, n_vehicle_features)).astype(np.float64)
-        
-        # x = x.reshape((x.shape[0], -1), order='F')
-
-        # x = x.reshape((1, -1))
         
         y = np.hstack((y_vehicles, y_n_vehicles))
 
@@ -191,13 +161,9 @@ class VehicleClassifier(object):
         with open(self.location+'/model/model.p', 'wb') as _f:
             pickle.dump(self.clf, _f)
 
+        print(self.clf.score(self.X_test, self.y_test))
+
     def predict(self, features):
         self.clf = pickle.load(open(self.location+'/model/model.p', 'rb'))
 
         return self.clf.predict(features)
-
-
-    def score(self):
-        self.load_data()
-        self.clf = pickle.load(open(self.location+'/model/model.p', 'rb'))
-        print(self.clf.score(self.X_test, self.y_test))

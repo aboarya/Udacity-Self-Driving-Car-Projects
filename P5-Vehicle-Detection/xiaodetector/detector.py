@@ -9,25 +9,6 @@ from .classifier import VehicleClassifier as Classifier
 
 from skimage.feature import hog
 
-def get_hog_features(img, orient, pix_per_cell, cell_per_block, 
-                        vis=False, feature_vec=True):
-    # Call with two outputs if vis==True
-    if vis == True:
-        features, hog_image = hog(img, orientations=orient, 
-                                  pixels_per_cell=(pix_per_cell, pix_per_cell),
-                                  cells_per_block=(cell_per_block, cell_per_block), 
-                                  transform_sqrt=True, 
-                                  visualise=vis, feature_vector=feature_vec)
-        return features, hog_image
-    # Otherwise call with one output
-    else:      
-        features = hog(img, orientations=orient, 
-                       pixels_per_cell=(pix_per_cell, pix_per_cell),
-                       cells_per_block=(cell_per_block, cell_per_block), 
-                       transform_sqrt=True, 
-                       visualise=vis, feature_vector=feature_vec)
-        return features
-
 def inOtherRect(rect_inner,rect_outer):
     return rect_inner[0]>=rect_outer[0] and \
         rect_inner[0]+rect_inner[2]<=rect_outer[0]+rect_outer[2] and \
@@ -64,14 +45,12 @@ def centroid_function(detections, img, heat_map):
         x,y,w,h = rectangle
         centroid_rectangles.append([x,y,x+w,y+h])
 
-
-
     return centroid_rectangles
 
-class Object:
+class Vehicle(object):
     def __init__(self,position):
         self.position = position
-        self.new_postion = None
+        self.new_postion = position
         self.count = 0
         self.frame = 1
         self.flag = False
@@ -114,14 +93,6 @@ class Object:
 
         return self.new_postion, self.flag
 
-class Vehicle(Object):
-     def __init__(self, position):
-        Object.__init__(self, position)
-
-class Person(Object):
-    def __init__(self, position):
-        Object.__init__(self, position)
-
 class VehicleDetector(object):
 
     def __init__(self):
@@ -135,55 +106,6 @@ class VehicleDetector(object):
 
         self.heatmap = np.zeros((720, 1280), np.uint8)
 
-    def update_heatmap(self, candidates, image_shape, heatmap=None):
-        if heatmap is None:
-            heatmap = np.zeros((image_shape[0], image_shape[1]), np.uint8)
-
-        for pt1, pt2 in candidates:
-            x1, y1 = pt1
-        
-            x2, y2 = pt2
-            
-            x1 = min(max(x1, 0), image_shape[1])
-            
-            x2 = min(max(x2, 0), image_shape[1])
-            
-            y1 = min(max(y1, 0), image_shape[0])
-            
-            y2 = min(max(y2, 0), image_shape[0])
-            
-            xv, yv = np.meshgrid(range(x1, x2), range(y1, y2))
-
-            heatmap[yv, xv] += 1
-
-        return heatmap
-
-    def draw_labeled_bboxes(self, img, labels):
-        # Iterate through all detected cars
-        for car_number in range(1, labels[1]+1):
-            # Find pixels with each car_number label value
-            nonzero = (labels[0] == car_number).nonzero()
-        
-            # Identify x and y values of those pixels
-            nonzeroy = np.array(nonzero[0])
-            
-            nonzerox = np.array(nonzero[1])
-        
-            # Define a bounding box based on min/max x and y
-            bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
-
-            # bbox, flag  = self.is_new_car(bbox)
-
-            self.boxes.append((bbox[0][0], bbox[0][1], bbox[1][0], bbox[1][1]))
-        
-            # Draw the box on the image
-            # cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
-
-            # if flag: self.boxes.append(bbox)
-        
-        # Return the image
-        return img
-
     def detect(self, image):
 
         scale = 1.5
@@ -192,32 +114,29 @@ class VehicleDetector(object):
 
         draw_image = np.copy(image)
 
-        # windows = self.slide_window(image, x_start_stop=[None, None], y_start_stop=y_start_stop, 
-        #             xy_window=(64, 64), xy_overlap=(0.5, 0.5))
-
         roi_window = draw_image[y_start_stop[0]:y_start_stop[1],:,:]
 
         roi_window = cv2.resize(roi_window, (np.int(roi_window.shape[1]/scale), np.int(roi_window.shape[0]/scale)))
 
-        feature_image = cv2.cvtColor(roi_window, cv2.COLOR_BGR2YCrCb)
+        feature_image = cv2.cvtColor(roi_window, cv2.COLOR_BGR2HLS)
 
         ch1 = feature_image[:,:,0]
         ch2 = feature_image[:,:,1]
         ch3 = feature_image[:,:,2]
 
-        hog1 = get_hog_features(ch1, 9, 8, 2, feature_vec=False)
+        hog1 = self.classifier.get_hog_features(ch1, feature_vec=False)
 
-        hog2 = get_hog_features(ch2, 9, 8, 2, feature_vec=False)
+        hog2 = self.classifier.get_hog_features(ch2, feature_vec=False)
 
-        hog3 = get_hog_features(ch3, 9, 8, 2, feature_vec=False)
+        hog3 = self.classifier.get_hog_features(ch3, feature_vec=False)
 
-        orient = 9  # HOG orientations
+        orient = self.classifier.orient  # HOG orientations
         
-        pix_per_cell = 8 # HOG pixels per cell
+        pix_per_cell = self.classifier.pix_per_cell # HOG pixels per cell
         
-        cell_per_block = 2 # HOG cells per block
+        cell_per_block = self.classifier.cell_per_block # HOG cells per block
         
-        window = 64
+        window = 128
 
         nxblocks = (roi_window.shape[1] // pix_per_cell) - 1
         
@@ -233,7 +152,7 @@ class VehicleDetector(object):
 
         nysteps = (nyblocks - nblocks_per_window) // cells_per_step
         
-        if self.count %  3 == 0:
+        if self.count % 3 == 0:
             self.heatmap = np.zeros((image.shape[0], image.shape[1]), np.uint8)
 
         # self.heatmap = np.zeros((image.shape[0], image.shape[1]), np.uint8)
@@ -265,7 +184,7 @@ class VehicleDetector(object):
 
                     spatial_features = self.classifier.bin_spatial_features(subimg, (32, 32))
 
-                    color_features = self.classifier.color_hist_features(subimg)
+                    color_features = self.classifier.color_hist_features(subimg, nbins=64)
 
                     test_features = np.hstack((spatial_features, color_features, hog_features)).reshape((1, -1))
                 
@@ -287,7 +206,7 @@ class VehicleDetector(object):
     
         self.count += 1
 
-        self.heatmap[self.heatmap < 3] = 0
+        self.heatmap[self.heatmap < 4] = 0
         
         # cv2.GaussianBlur(self.heatmap, (31, 31), 0, dst=self.heatmap)
         
@@ -306,7 +225,7 @@ class VehicleDetector(object):
             for car in self.cars:
                 new = car.update(centroid)
             if new == False:
-                break
+                continue
             if new == True:
                 self.cars.append(Vehicle(centroid))
 
@@ -324,7 +243,8 @@ class VehicleDetector(object):
         try:
             for (x1, y1, x2, y2) in positions:
                 cv2.rectangle(im, (x1, y1), (x2, y2), (255, 0, 0), thickness=2)
-        except:
+        except Exception as e:
+            raise e
             pass
 
         # im = np.copy(image)
