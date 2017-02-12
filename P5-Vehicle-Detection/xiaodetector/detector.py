@@ -1,4 +1,6 @@
 import cv2
+import collections
+
 import numpy as np
 
 from scipy.ndimage.measurements import label
@@ -26,7 +28,47 @@ def get_hog_features(img, orient, pix_per_cell, cell_per_block,
                        visualise=vis, feature_vector=feature_vec)
         return features
 
-class Vehicle(object):
+def inOtherRect(rect_inner,rect_outer):
+    return rect_inner[0]>=rect_outer[0] and \
+        rect_inner[0]+rect_inner[2]<=rect_outer[0]+rect_outer[2] and \
+        rect_inner[1]>=rect_outer[1] and \
+        rect_inner[1]+rect_inner[3]<=rect_outer[1]+rect_outer[3] and \
+        (rect_inner!=rect_outer)
+
+def centroid_function(detections, img, heat_map):
+    
+    centroid_rectangles = []
+    
+    # _, binary = cv2.threshold(heat_map, 11, 255, cv2.THRESH_BINARY);
+
+    _, contours, _ = cv2.findContours(heat_map, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    
+
+    outer_rects =[ cv2.boundingRect(c) for c in contours[:]]
+    for contour in contours:
+        rectangle = cv2.boundingRect(contour)
+        for contour1 in contours:
+            rectangle1 = cv2.boundingRect(contour1)
+            if inOtherRect(rectangle, rectangle1):
+                if rectangle in outer_rects:
+                    outer_rects.remove(rectangle)
+
+        # rectangle = cv2.boundingRect(contour)
+        # if rectangle[2] < 40 or rectangle[3] < 40: continue
+        # x,y,w,h = rectangle
+        # centroid_rectangles.append([x,y,x+w,y+h])
+
+    for rectangle in outer_rects:
+        # rectangle = cv2.boundingRect(contour)
+        if rectangle[2] < 50 or rectangle[3] < 50: continue
+        x,y,w,h = rectangle
+        centroid_rectangles.append([x,y,x+w,y+h])
+
+
+
+    return centroid_rectangles
+
+class Object:
     def __init__(self,position):
         self.position = position
         self.new_postion = None
@@ -72,18 +114,26 @@ class Vehicle(object):
 
         return self.new_postion, self.flag
 
+class Vehicle(Object):
+     def __init__(self, position):
+        Object.__init__(self, position)
 
+class Person(Object):
+    def __init__(self, position):
+        Object.__init__(self, position)
 
 class VehicleDetector(object):
 
     def __init__(self):
         self.classifier = Classifier()
 
-        self.count = 0
+        self.count = 1
 
         self.cars = list()
 
-        self.centroids = list()
+        self.boxes = collections.deque()
+
+        self.heatmap = np.zeros((720, 1280), np.uint8)
 
     def update_heatmap(self, candidates, image_shape, heatmap=None):
         if heatmap is None:
@@ -108,7 +158,6 @@ class VehicleDetector(object):
 
         return heatmap
 
-
     def draw_labeled_bboxes(self, img, labels):
         # Iterate through all detected cars
         for car_number in range(1, labels[1]+1):
@@ -122,24 +171,20 @@ class VehicleDetector(object):
         
             # Define a bounding box based on min/max x and y
             bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
+
+            # bbox, flag  = self.is_new_car(bbox)
+
+            self.boxes.append((bbox[0][0], bbox[0][1], bbox[1][0], bbox[1][1]))
         
             # Draw the box on the image
-            cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
+            # cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
+
+            # if flag: self.boxes.append(bbox)
         
         # Return the image
         return img
 
     def detect(self, image):
-        # Define a function to draw bounding boxes
-        def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
-            # Make a copy of the image
-            imcopy = np.copy(img)
-            # Iterate through the bounding boxes
-            for bbox in bboxes:
-                # Draw a rectangle given bbox coordinates
-                cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
-                # Return the image copy with boxes drawn
-            return imcopy
 
         scale = 1.5
 
@@ -188,14 +233,16 @@ class VehicleDetector(object):
 
         nysteps = (nyblocks - nblocks_per_window) // cells_per_step
         
-        # if self.count % 30 == 0:
-        #     # self.heatmap = np.zeros((image.shape[0], image.shape[1]), np.uint8)
-        #     self.centroids = list()
+        if self.count %  3 == 0:
+            self.heatmap = np.zeros((image.shape[0], image.shape[1]), np.uint8)
+
+        # self.heatmap = np.zeros((image.shape[0], image.shape[1]), np.uint8)
+
+        # self.heatmap //= self.count
+        self.boxes.clear()
 
         for xb in range(nxsteps):
             for yb in range(nysteps):
-
-                self.count += 1
 
                 try:
                     ypos = yb*cells_per_step
@@ -231,29 +278,35 @@ class VehicleDetector(object):
 
                         win_draw = np.int(window*scale)
 
-                        self.centroids.append((xbox_left, ytop_draw+y_start_stop[0], xbox_left+win_draw, ytop_draw+win_draw+y_start_stop[0]))
+                        self.boxes.append((xbox_left, ytop_draw+y_start_stop[0], xbox_left+win_draw, ytop_draw+win_draw+y_start_stop[0]))
 
-                        # self.heatmap[ytop_draw+y_start_stop[0]:ytop_draw+win_draw+y_start_stop[0], xbox_left:xbox_left+win_draw] += 1 
+                        self.heatmap[ytop_draw+y_start_stop[0]:ytop_draw+win_draw+y_start_stop[0], xbox_left:xbox_left+win_draw] += 1
 
                 except Exception as e:
                     raise e
     
-        # self.heatmap[self.heatmap < 5] = 0
+        self.count += 1
+
+        self.heatmap[self.heatmap < 3] = 0
         
         # cv2.GaussianBlur(self.heatmap, (31, 31), 0, dst=self.heatmap)
         
         # labels = label(self.heatmap)
+
+        # print(labels[1])
     
         # im = self.draw_labeled_bboxes(np.copy(image), labels)
 
         im = np.copy(image)
 
-        for centroid in self.centroids:
+        centroids = centroid_function(self.boxes, im, self.heatmap)
+
+        for centroid in centroids:
             new = True
             for car in self.cars:
                 new = car.update(centroid)
-                if new == False:
-                    continue
+            if new == False:
+                break
             if new == True:
                 self.cars.append(Vehicle(centroid))
 
@@ -264,7 +317,7 @@ class VehicleDetector(object):
             position, flag = car.get_position()
             if flag == False:
                 next_cars.append(car)
-            positions.append(position)
+                positions.append(position)
 
         self.cars = next_cars
 
@@ -273,5 +326,33 @@ class VehicleDetector(object):
                 cv2.rectangle(im, (x1, y1), (x2, y2), (255, 0, 0), thickness=2)
         except:
             pass
+
+        # im = np.copy(image)
+
+        # for centroid in self.centroids:
+        #     new = True
+        #     for car in self.cars:
+        #         new = car.update(centroid)
+        #         if new == False:
+        #             break
+        #     if new == True:
+        #         self.cars.append(Vehicle(centroid))
+
+        # next_cars = []
+        # positions = []
+
+        # for car in self.cars:
+        #     position, flag = car.get_position()
+        #     if flag == False:
+        #         next_cars.append(car)
+        #     positions.append(position)
+
+        # self.cars = next_cars
+
+        # try:
+        #     for (x1, y1, x2, y2) in positions:
+        #         cv2.rectangle(im, (x1, y1), (x2, y2), (255, 0, 0), thickness=2)
+        # except:
+        #     pass
 
         return im

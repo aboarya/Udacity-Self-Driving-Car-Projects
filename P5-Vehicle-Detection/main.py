@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
 	white_output = 'output_video.mp4'
 
-	clip1 = VideoFileClip("test_video.mp4")
+	clip1 = VideoFileClip("project_video.mp4")
 
 	# NOTE: this function expects color images!!
 	white_clip = clip1.fl_image(tracker.track)
