@@ -217,7 +217,7 @@ class VehicleDetector(object):
         
         labels = label(self.heatmap)
 
-        return labels, self.heatmap
+        return labels
     
         # im = self.draw_labeled_bboxes(np.copy(image), labels)
 

@@ -92,7 +92,7 @@ class VehicleTracker(object):
 
 
     def track(self, image):
-        labels, heatmap = self.detector.detect(image)
+        labels = self.detector.detect(image)
 
         self.process_labels(labels)
 
@@ -100,4 +100,4 @@ class VehicleTracker(object):
 
         self.draw_cars(im)
 
-        return (im, heatmap)
+        return im
