@@ -12,12 +12,12 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 [image1]: ./output_images/hog_feature_scatter_plot.jpg
-[image2]: ./examples/HOG_example.jpg
-[image3]: ./examples/test1.jpg
-[image4]: ./examples/sliding_window.jpg
-[image5]: ./examples/heatmaps.png
-[image6]: ./examples/labels_map.png
-[image7]: ./examples/output_bboxes.png
+[image2]: ./output_images/HOG_example.jpg
+[image3]: ./output_images/test1.jpg
+[image4]: ./output_images/sliding_window.jpg
+[image5]: ./output_images/heatmaps.png
+[image6]: ./output_images/labels_map.png
+[image7]: ./output_images/output_bboxes.png
 [video1]: ./project_video.mp4
 
 # Overview
@@ -50,7 +50,7 @@ Images are loaded into two separate arrays.  Features for each set of images are
 Below is an example using the `HLS` color space and HOG parameters of `orientations=9`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)` for vehicle and one non-vehicle:
 
 
-![alt text][image2]
+![alt text][image1]
 
 The choice of __HOG__ parameters was a matter of `trial-and-error` by re-training the classifier and running the code against the `test_video.mp4`.  
 
