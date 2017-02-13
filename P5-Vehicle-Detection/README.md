@@ -15,7 +15,7 @@ The goals / steps of this project are the following:
 [image2]: ./examples/HOG_example.jpg
 [image3]: ./examples/test1.jpg
 [image4]: ./examples/sliding_window.jpg
-[image5]: ./examples/bboxes_and_heat.png
+[image5]: ./examples/heatmaps.png
 [image6]: ./examples/labels_map.png
 [image7]: ./examples/output_bboxes.png
 [video1]: ./project_video.mp4
@@ -92,16 +92,9 @@ The __VechileTracker__ module maintians a list of tracked vehicles and updated t
 Example of the processing of the video can be seen int this [link](./output_video.mp4)
 
 
-### Here are six frames and their corresponding heatmaps:
+Below are all six frames with their bounding boxes and heatmaps
 
 ![alt text][image5]
-
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
-
-### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][image7]
-
 
 
 ---

@@ -11,6 +11,9 @@ class Car(object):
         self.position = position
         self.old_position = position
 
+        self.xdiff = [0]
+        self.ydiff = [0]
+
     def compare(self, bbox):
         # print(abs(self.position[0][0] - bbox[0][0]))
         if abs(self.position[0][0] - bbox[0][0]) > 100:
@@ -18,8 +21,8 @@ class Car(object):
 
         self.position = bbox
         self.old_position = self.position
-        self.xdiff = abs(self.position[0][0] - self.old_position[0][0])
-        self.ydiff = abs(self.position[0][1] - self.old_position[0][1])
+        self.xdiff.append(abs(self.position[0][0] - self.old_position[0][0]))
+        self.ydiff.append(abs(self.position[0][1] - self.old_position[0][1]))
         return False
 
     def draw(self, img):
@@ -29,7 +32,7 @@ class Car(object):
 
         x1, y1, x2, y2 = self.position[0][0], self.position[0][1], self.position[0][0]+w, self.position[0][1]+h
 
-        cv2.rectangle(img, (x1+self.xdiff, y1+self.ydiff), (x2, y2), (0,0,255), 6)
+        cv2.rectangle(img, (x1+sum(self.xdiff), y1+sum(self.ydiff)), (x2, y2), (0,0,255), 6)
 
 
 class VehicleTracker(object):
@@ -89,7 +92,7 @@ class VehicleTracker(object):
 
 
     def track(self, image):
-        labels = self.detector.detect(image)
+        labels, heatmap = self.detector.detect(image)
 
         self.process_labels(labels)
 
@@ -97,4 +100,4 @@ class VehicleTracker(object):
 
         self.draw_cars(im)
 
-        return im
+        return (im, heatmap)
