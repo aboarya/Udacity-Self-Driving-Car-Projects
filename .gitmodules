@@ -1,0 +1,15 @@
+[submodule "CarND-P1-Simple-Lane-Detection"]
+	path = CarND-P1-Simple-Lane-Detection
+	url = git@github.com:autojazari/CarND-P1-Simple-Lane-Detection.git
+[submodule "CarND-P2-Traffic-Sign-Detection"]
+	path = CarND-P2-Traffic-Sign-Detection
+	url = git@github.com:autojazari/CarND-P2-Traffic-Sign-Detection.git
+[submodule "CarND-P3-Behavioral-Cloning-Simulator"]
+	path = CarND-P3-Behavioral-Cloning-Simulator
+	url = git@github.com:autojazari/CarND-P3-Behavioral-Cloning-Simulator.git
+[submodule "CarND-P5-Vehicle-Detection"]
+	path = CarND-P5-Vehicle-Detection
+	url = git@github.com:autojazari/CarND-P5-Vehicle-Detection.git
+[submodule "CarND-P4-Advanced-Lane-Detection"]
+	path = CarND-P4-Advanced-Lane-Detection
+	url = git@github.com:autojazari/CarND-P4-Advanced-Lane-Detection.git
